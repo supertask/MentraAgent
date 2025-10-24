@@ -24,12 +24,21 @@ INPUT_DEVICE=webcam
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/realworld_agent
 API_SERVER_PORT=3000
 QDRANT_URL=http://localhost:6333
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# LLM設定（OpenAI優先）
+PRIMARY_LLM_PROVIDER=openai
+ENABLE_LLM_FALLBACK=true
 OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 EOF
 ```
 
-**重要**: `ANTHROPIC_API_KEY` と `OPENAI_API_KEY` を実際のキーに置き換えてください。
+**重要**: 
+- `OPENAI_API_KEY` を実際のキーに置き換えてください（必須）
+- `ANTHROPIC_API_KEY` はフォールバック用にも設定可能です（オプション）
+- `PRIMARY_LLM_PROVIDER=openai` でOpenAIが優先されます
 
 ## 4. データベースのセットアップ
 

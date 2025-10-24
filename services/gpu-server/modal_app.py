@@ -17,25 +17,38 @@ models_volume = modal.Volume.from_name("realworld-agent-models", create_if_missi
 # Docker イメージの定義
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install(
-        "torch==2.1.0",
-        "torchaudio==2.1.0",
-        "whisperx==3.1.1",
-        "pyannote.audio==3.1.1",
-        "openai-whisper==20231117",
-        "faster-whisper==0.10.0",
-        "anthropic==0.18.1",
-        "openai==1.12.0",
-        "numpy==1.24.3",
-        "scipy==1.11.4",
-        "scikit-learn==1.3.2",
-        "opencv-python-headless==4.8.1.78",
-        "Pillow==10.2.0",
-        "python-dotenv==1.0.1",
-        "fastapi[all]==0.109.2",
-        "pydantic==2.6.1",
+    .apt_install(
+        "ffmpeg",
+        "git",
+        "pkg-config",
+        "libavformat-dev",
+        "libavcodec-dev",
+        "libavdevice-dev",
+        "libavutil-dev",
+        "libswscale-dev",
+        "libswresample-dev",
+        "libavfilter-dev",
     )
-    .apt_install("ffmpeg", "git")
+    .pip_install(
+        # 仕様書生成に必要なパッケージ（最小構成）
+        "anthropic>=0.40.0",
+        "openai>=1.54.0",
+        "Pillow>=10.2.0",
+        "python-dotenv>=1.0.1",
+        "fastapi[all]>=0.109.2",
+        "pydantic>=2.6.1",
+        # 音声文字起こし用（現在は無効化）
+        # "torch==2.1.0",
+        # "torchaudio==2.1.0",
+        # "whisperx==3.1.1",
+        # "pyannote.audio==3.1.1",
+        # "openai-whisper==20231117",
+        # "faster-whisper==0.9.0",
+        # "numpy==1.24.3",
+        # "scipy==1.11.4",
+        # "scikit-learn==1.3.2",
+        # "opencv-python-headless==4.8.1.78",
+    )
 )
 
 # Secrets（環境変数）
@@ -46,10 +59,11 @@ secrets = [
 
 @app.cls(
     image=image,
-    gpu="A10G",  # NVIDIA A10G GPU
+    # gpu="A10G",  # GPUは音声文字起こし時のみ必要（現在は無効化）
     secrets=secrets,
     volumes={"/models": models_volume},
     timeout=600,  # 10分タイムアウト
+    # keep_warm=1,  # コスト削減のため無効化（コールドスタートあり：20-60秒）
 )
 class RealworldAgentGPU:
     """
@@ -62,47 +76,17 @@ class RealworldAgentGPU:
         self.diarization_pipeline = None
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+        self.primary_llm_provider = os.getenv("PRIMARY_LLM_PROVIDER", "openai")
+        self.enable_llm_fallback = os.getenv("ENABLE_LLM_FALLBACK", "true").lower() == "true"
+        self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o")
+        self.anthropic_model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 
     @modal.enter()
     def load_models(self):
         """モデルの読み込み（起動時に1回だけ実行）"""
-        import whisperx
-        from pyannote.audio import Pipeline
-        import torch
-
-        print("🚀 モデルを読み込み中...")
-
-        # デバイスの設定
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"📱 Device: {self.device}")
-
-        # WhisperXモデルの読み込み
-        print("📝 WhisperXモデルを読み込み中...")
-        self.whisperx_model = whisperx.load_model(
-            "large-v2",
-            self.device,
-            compute_type="float16" if self.device == "cuda" else "int8",
-            download_root="/models/whisperx",
-        )
-        print("✅ WhisperXモデル読み込み完了")
-
-        # pyannote話者分離パイプラインの読み込み
-        print("🎤 pyannote話者分離パイプラインを読み込み中...")
-        try:
-            self.diarization_pipeline = Pipeline.from_pretrained(
-                "pyannote/speaker-diarization-3.1",
-                use_auth_token=os.getenv("HUGGINGFACE_TOKEN"),
-            )
-            if self.device == "cuda":
-                self.diarization_pipeline = self.diarization_pipeline.to(
-                    torch.device("cuda")
-                )
-            print("✅ pyannote話者分離パイプライン読み込み完了")
-        except Exception as e:
-            print(f"⚠️ pyannote読み込みエラー（話者分離は無効）: {e}")
-            self.diarization_pipeline = None
-
-        print("🎉 すべてのモデル読み込み完了")
+        print("🚀 初期化中...")
+        print("✅ 初期化完了")
+        print("ℹ️  WhisperX/pyannoteは現在無効化されています（仕様書生成のみ利用可能）")
 
     @modal.method()
     def transcribe_audio(
@@ -208,17 +192,15 @@ class RealworldAgentGPU:
             画像分析結果
         """
         import base64
-        from anthropic import Anthropic
 
-        print("🖼️ 画像分析開始")
+        print(f"🖼️ 画像分析開始（プライマリ: {self.primary_llm_provider}）")
 
-        try:
-            # Base64エンコード
-            image_base64 = base64.b64encode(image_data).decode("utf-8")
+        # Base64エンコード
+        image_base64 = base64.b64encode(image_data).decode("utf-8")
 
-            # デフォルトプロンプト
-            if not prompt:
-                prompt = """
+        # デフォルトプロンプト
+        if not prompt:
+            prompt = """
 この画像を詳しく分析してください：
 1. 何が映っているか（オブジェクト、人物、風景など）
 2. 技術的な要素（コード、図、UI、ホワイトボードなど）
@@ -235,42 +217,35 @@ JSON形式で回答してください：
 }
 """
 
-            # Claude Visionを使用
-            client = Anthropic(api_key=self.anthropic_api_key)
-
-            response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=1024,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/jpeg",
-                                    "data": image_base64,
-                                },
-                            },
-                            {"type": "text", "text": prompt},
-                        ],
-                    }
-                ],
+        try:
+            # プライマリLLMで試行
+            result = self._analyze_image_with_provider(
+                image_base64, 
+                prompt, 
+                self.primary_llm_provider
             )
-
-            result = {
-                "analysis": response.content[0].text,
-                "model": "claude-3-5-sonnet",
-                "timestamp": datetime.now().isoformat(),
-            }
-
-            print("✅ 画像分析完了")
             return result
 
         except Exception as e:
-            print(f"❌ 画像分析エラー: {e}")
-            raise
+            print(f"⚠️ プライマリLLM（{self.primary_llm_provider}）エラー: {e}")
+            
+            # フォールバックが有効な場合
+            if self.enable_llm_fallback:
+                fallback_provider = "anthropic" if self.primary_llm_provider == "openai" else "openai"
+                print(f"🔄 フォールバック: {fallback_provider}で再試行")
+                
+                try:
+                    result = self._analyze_image_with_provider(
+                        image_base64, 
+                        prompt, 
+                        fallback_provider
+                    )
+                    return result
+                except Exception as fallback_error:
+                    print(f"❌ フォールバックLLMもエラー: {fallback_error}")
+                    raise
+            else:
+                raise
 
     @modal.method()
     def detect_scene_changes(
@@ -341,42 +316,63 @@ JSON形式で回答してください：
         Returns:
             生成された仕様書
         """
-        from anthropic import Anthropic
+        print(f"📄 仕様書生成開始（プライマリ: {self.primary_llm_provider}）")
 
-        print("📄 仕様書生成開始")
+        # プロンプトの構築
+        prompt = self._build_specification_prompt(context)
 
         try:
-            client = Anthropic(api_key=self.anthropic_api_key)
-
-            # プロンプトの構築
-            prompt = self._build_specification_prompt(context)
-
-            response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=4096,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
+            # プライマリLLMで試行
+            result = self._generate_text_with_provider(
+                prompt,
+                self.primary_llm_provider,
+                max_tokens=4096
             )
-
-            specification_text = response.content[0].text
-
-            result = {
+            
+            specification_text = result["content"]
+            
+            output = {
                 "title": self._extract_title(specification_text),
                 "content": specification_text,
-                "model": "claude-3-5-sonnet",
+                "model": result["model"],
                 "timestamp": datetime.now().isoformat(),
             }
 
             print("✅ 仕様書生成完了")
-            return result
+            return output
 
         except Exception as e:
-            print(f"❌ 仕様書生成エラー: {e}")
-            raise
+            print(f"⚠️ プライマリLLM（{self.primary_llm_provider}）エラー: {e}")
+            
+            # フォールバックが有効な場合
+            if self.enable_llm_fallback:
+                fallback_provider = "anthropic" if self.primary_llm_provider == "openai" else "openai"
+                print(f"🔄 フォールバック: {fallback_provider}で再試行")
+                
+                try:
+                    result = self._generate_text_with_provider(
+                        prompt,
+                        fallback_provider,
+                        max_tokens=4096
+                    )
+                    
+                    specification_text = result["content"]
+                    
+                    output = {
+                        "title": self._extract_title(specification_text),
+                        "content": specification_text,
+                        "model": result["model"],
+                        "timestamp": datetime.now().isoformat(),
+                    }
+
+                    print("✅ 仕様書生成完了（フォールバック）")
+                    return output
+                    
+                except Exception as fallback_error:
+                    print(f"❌ フォールバックLLMもエラー: {fallback_error}")
+                    raise
+            else:
+                raise
 
     # ヘルパーメソッド
 
@@ -430,6 +426,155 @@ JSON形式で回答してください：
                 return line.replace("# ", "").strip()
         return "仕様書"
 
+    def _analyze_image_with_provider(
+        self,
+        image_base64: str,
+        prompt: str,
+        provider: str,
+    ) -> Dict[str, Any]:
+        """
+        指定されたプロバイダーで画像分析を実行
+
+        Args:
+            image_base64: Base64エンコードされた画像
+            prompt: プロンプト
+            provider: 'openai' または 'anthropic'
+
+        Returns:
+            画像分析結果
+        """
+        if provider == "openai":
+            from openai import OpenAI
+            
+            print(f"  🤖 OpenAI ({self.openai_model})で画像分析中...")
+            client = OpenAI(api_key=self.openai_api_key)
+            
+            response = client.chat.completions.create(
+                model=self.openai_model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{image_base64}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=1024,
+            )
+            
+            return {
+                "analysis": response.choices[0].message.content,
+                "model": self.openai_model,
+                "timestamp": datetime.now().isoformat(),
+            }
+            
+        elif provider == "anthropic":
+            from anthropic import Anthropic
+            
+            print(f"  🤖 Anthropic ({self.anthropic_model})で画像分析中...")
+            client = Anthropic(api_key=self.anthropic_api_key)
+            
+            response = client.messages.create(
+                model=self.anthropic_model,
+                max_tokens=1024,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": image_base64,
+                                },
+                            },
+                            {"type": "text", "text": prompt},
+                        ],
+                    }
+                ],
+            )
+            
+            return {
+                "analysis": response.content[0].text,
+                "model": self.anthropic_model,
+                "timestamp": datetime.now().isoformat(),
+            }
+        else:
+            raise ValueError(f"未サポートのプロバイダー: {provider}")
+
+    def _generate_text_with_provider(
+        self,
+        prompt: str,
+        provider: str,
+        max_tokens: int = 4096,
+    ) -> Dict[str, Any]:
+        """
+        指定されたプロバイダーでテキスト生成を実行
+
+        Args:
+            prompt: プロンプト
+            provider: 'openai' または 'anthropic'
+            max_tokens: 最大トークン数
+
+        Returns:
+            生成結果
+        """
+        if provider == "openai":
+            from openai import OpenAI
+            
+            print(f"  🤖 OpenAI ({self.openai_model})でテキスト生成中...")
+            client = OpenAI(api_key=self.openai_api_key)
+            
+            response = client.chat.completions.create(
+                model=self.openai_model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                max_tokens=max_tokens,
+            )
+            
+            return {
+                "content": response.choices[0].message.content,
+                "model": self.openai_model,
+            }
+            
+        elif provider == "anthropic":
+            from anthropic import Anthropic
+            
+            print(f"  🤖 Anthropic ({self.anthropic_model})でテキスト生成中...")
+            client = Anthropic(api_key=self.anthropic_api_key)
+            
+            response = client.messages.create(
+                model=self.anthropic_model,
+                max_tokens=max_tokens,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+            )
+            
+            return {
+                "content": response.content[0].text,
+                "model": self.anthropic_model,
+            }
+        else:
+            raise ValueError(f"未サポートのプロバイダー: {provider}")
+
 
 # FastAPI Webエンドポイント
 @app.function(image=image, secrets=secrets)
@@ -438,7 +583,7 @@ def fastapi_app():
     """
     FastAPI Webエンドポイント
     """
-    from fastapi import FastAPI, UploadFile, File, Form
+    from fastapi import FastAPI, UploadFile, File, Form, Request
     from fastapi.responses import JSONResponse
 
     web_app = FastAPI(title="Realworld Agent GPU API")
@@ -492,6 +637,24 @@ def fastapi_app():
 
             gpu = RealworldAgentGPU()
             result = gpu.analyze_image.remote(image_data)
+
+            return JSONResponse(content=result)
+
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)},
+            )
+
+    @web_app.post("/generate-spec")
+    async def generate_specification(request: Request):
+        """仕様書生成API"""
+        try:
+            body = await request.json()
+            context = body.get("context", {})
+
+            gpu = RealworldAgentGPU()
+            result = gpu.generate_specification.remote(context)
 
             return JSONResponse(content=result)
 

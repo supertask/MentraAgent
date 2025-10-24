@@ -214,16 +214,45 @@ AI_PROVIDER=replicate
 AI_PROVIDER=runpod
 ```
 
+### LLMプロバイダーの優先度設定
+
+OpenAIとAnthropicのどちらを優先するか設定できます：
+
+```env
+# OpenAIを優先（デフォルト）
+PRIMARY_LLM_PROVIDER=openai
+OPENAI_MODEL=gpt-4o
+
+# Anthropicを優先
+PRIMARY_LLM_PROVIDER=anthropic
+ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+
+# フォールバック機能の有効化（推奨）
+# プライマリが失敗した場合、自動的にセカンダリを使用
+ENABLE_LLM_FALLBACK=true
+```
+
+**使用例**：
+- OpenAIの$50クレジットを消化したい → `PRIMARY_LLM_PROVIDER=openai`
+- 高精度な分析が必要 → `PRIMARY_LLM_PROVIDER=anthropic`
+- 安定性重視 → `ENABLE_LLM_FALLBACK=true`（両方設定）
+
 ## 💰 コスト概算
 
 **月間使用想定**: 1日2時間 × 20営業日 = 40時間
 
-| コンポーネント | 月額費用 |
-|---------------|---------|
-| Modal GPU処理 | $10-18 |
-| LLM API | $50-200 |
-| PostgreSQL/Storage | $30-70 |
-| **合計** | **$90-288** |
+| コンポーネント | 月額費用 | 備考 |
+|---------------|---------|------|
+| Modal GPU処理 | **$0-5** | keep_warm無効化（使った分だけ課金） |
+| LLM API (OpenAI/Anthropic) | $10-100 | 仕様書生成のみ使用 |
+| PostgreSQL/Storage | $0-30 | ローカル開発は無料 |
+| **合計** | **$10-135** | **コスト最適化済み** ✅ |
+
+**コスト削減のポイント**:
+- ✅ Modal `keep_warm`無効化 → 常時課金なし
+- ✅ GPU不使用 → 仕様書生成はCPUのみ
+- ✅ 使用時のみ課金 → 待機コスト$0
+- ✅ LLMプロバイダー切り替え → 安価なモデルも選択可能
 
 ## 📚 ドキュメント
 

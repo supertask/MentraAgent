@@ -122,6 +122,9 @@ async function startSession() {
     
     addLog('カメラとマイクにアクセスしました', 'success');
     
+    // セッションを作成
+    await createSession();
+    
     // APIサーバーに接続
     await connectToServer();
     
@@ -148,6 +151,38 @@ async function startSession() {
   }
 }
 
+// セッションを作成
+async function createSession(): Promise<void> {
+  try {
+    // セッションID生成
+    const tempSessionId = `session-${Date.now()}`;
+    
+    // APIサーバーでセッションを作成
+    const response = await fetch(`${API_BASE_URL}/api/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: 'anonymous',
+        deviceType: 'webcam',
+        status: 'active',
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('セッション作成に失敗しました');
+    }
+    
+    const data = await response.json();
+    sessionId = data.sessionId;
+    sessionIdEl.textContent = sessionId.substring(0, 16) + '...';
+    
+    addLog(`セッションを作成しました: ${sessionId.substring(0, 16)}...`, 'success');
+  } catch (error) {
+    addLog(`セッション作成エラー: ${error}`, 'error');
+    throw error;
+  }
+}
+
 // サーバーに接続
 async function connectToServer(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -158,11 +193,6 @@ async function connectToServer(): Promise<void> {
       websocket.onopen = () => {
         updateConnectionStatus(true);
         addLog('サーバーに接続しました', 'success');
-        
-        // セッションID生成（簡易版）
-        sessionId = `session-${Date.now()}`;
-        sessionIdEl.textContent = sessionId.substring(0, 16) + '...';
-        
         resolve();
       };
       
@@ -219,6 +249,7 @@ async function startAudioProcessing() {
       if (isFinal && websocket?.readyState === WebSocket.OPEN) {
         sendToServer({
           type: 'transcription',
+          sessionId: sessionId,
           data: {
             text: transcript,
             timestamp: new Date().toISOString(),

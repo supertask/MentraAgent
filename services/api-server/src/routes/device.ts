@@ -7,6 +7,8 @@ import type { FastifyPluginAsync } from 'fastify';
 import { logger } from '../utils/logger';
 import { StorageService } from '../services/StorageService';
 import { PhotoRepository } from '../repositories/PhotoRepository';
+import { SessionRepository } from '../repositories/SessionRepository';
+import { TranscriptionRepository } from '../repositories/TranscriptionRepository';
 import { DatabaseService } from '../services/DatabaseService';
 import type { PhotoData } from '@realworld-agent/shared';
 
@@ -14,6 +16,8 @@ export const deviceRouter: FastifyPluginAsync = async (fastify) => {
   const storage = new StorageService();
   const db = fastify.db as DatabaseService;
   const photoRepo = new PhotoRepository(db);
+  const sessionRepo = new SessionRepository(db);
+  const transcriptionRepo = new TranscriptionRepository(db);
 
   // WebSocket: Webカメラからのリアルタイムストリーム
   fastify.get('/webcam/stream', { websocket: true }, (socket, request) => {
@@ -38,7 +42,43 @@ export const deviceRouter: FastifyPluginAsync = async (fastify) => {
             isFinal: data.data.isFinal,
           });
 
-          // TODO: TranscriptionRepositoryに保存
+          // セッションIDを取得（WebSocketのメタデータから）
+          let sessionId = data.sessionId || `session-${Date.now()}`;
+          
+          // データベースに保存（finalのみ）
+          if (data.data.isFinal && data.data.text.trim()) {
+            try {
+              // セッションの存在確認
+              let existingSession = await sessionRepo.findById(sessionId);
+              
+              if (!existingSession) {
+                // セッションが存在しない場合は作成
+                const newSession = await sessionRepo.create({
+                  userId: 'anonymous',
+                  deviceType: 'webcam',
+                  status: 'active',
+                  metadata: {},
+                });
+                
+                logger.info('文字起こし用のセッションを作成しました', {
+                  oldSessionId: sessionId,
+                  newSessionId: newSession.sessionId,
+                });
+                
+                sessionId = newSession.sessionId;
+              }
+              
+              await transcriptionRepo.save(sessionId, {
+                text: data.data.text,
+                isFinal: data.data.isFinal,
+                confidence: data.data.confidence,
+                language: data.data.language || 'ja',
+                timestamp: new Date(),
+              });
+            } catch (error) {
+              logger.error('文字起こし保存エラー', error as Error, { sessionId });
+            }
+          }
         } else if (data.type === 'ping') {
           // Ping/Pong
           socket.send(JSON.stringify({ type: 'pong' }));
@@ -67,9 +107,37 @@ export const deviceRouter: FastifyPluginAsync = async (fastify) => {
       }
 
       const buffer = await data.toBuffer();
-      const sessionId =
-        (data.fields.sessionId as any)?.value ||
-        `session-${Date.now()}`;
+      let sessionId =
+        (data.fields.sessionId as any)?.value;
+
+      // セッションが存在しない場合は作成
+      if (!sessionId) {
+        const newSession = await sessionRepo.create({
+          userId: 'anonymous',
+          deviceType: 'webcam',
+          status: 'active',
+          startTime: new Date(),
+        });
+        sessionId = newSession.sessionId;
+        logger.info('新しいセッションを作成しました', { sessionId });
+      } else {
+        // セッションが存在するか確認
+        const existingSession = await sessionRepo.findById(sessionId);
+        if (!existingSession) {
+          // セッションが存在しない場合は作成
+          const newSession = await sessionRepo.create({
+            userId: 'anonymous',
+            deviceType: 'webcam',
+            status: 'active',
+            startTime: new Date(),
+          });
+          sessionId = newSession.sessionId;
+          logger.info('セッションが存在しないため新しく作成しました', { 
+            oldSessionId: (data.fields.sessionId as any)?.value,
+            newSessionId: sessionId 
+          });
+        }
+      }
 
       logger.info('Photo uploaded', {
         filename: data.filename,

@@ -209,6 +209,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env_modal
 .envrc
 .venv
 env/

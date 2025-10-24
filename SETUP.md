@@ -89,8 +89,12 @@ MODAL_TOKEN_SECRET=your_modal_token_secret
 
 # AI Provider
 AI_PROVIDER=modal
+PRIMARY_LLM_PROVIDER=openai
+ENABLE_LLM_FALLBACK=true
 OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-4o
 ANTHROPIC_API_KEY=your_anthropic_api_key
+ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 
 # Vector DB
 VECTOR_DB_PROVIDER=qdrant
@@ -150,8 +154,12 @@ modal token new
 
 # Modalシークレットの設定
 modal secret create realworld-agent-secrets \
+  PRIMARY_LLM_PROVIDER=openai \
+  ENABLE_LLM_FALLBACK=true \
   OPENAI_API_KEY=$OPENAI_API_KEY \
+  OPENAI_MODEL=gpt-4o \
   ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  ANTHROPIC_MODEL=claude-3-5-sonnet-20241022 \
   HUGGINGFACE_TOKEN=your_huggingface_token_if_needed
 
 # GPUサーバーをデプロイ
@@ -263,30 +271,36 @@ modal deploy modal_app.py --stream-logs
 
 セットアップ完了後：
 
-1. **カスタマイズ**
+1. **LLMプロバイダーの設定**
+   - OpenAIとAnthropicの優先度を設定
+   - フォールバック機能の有効化
+   - 詳細: [LLM設定ガイド](./docs/LLM_PROVIDER_CONFIGURATION.md)
+
+2. **カスタマイズ**
    - `services/api-server/src/config.ts` で設定をカスタマイズ
    - 重要キーワードの追加・変更
    - 自動撮影の閾値調整
 
-2. **外部連携の設定**
+3. **外部連携の設定**
    - Slack通知の設定
    - GitHub PR自動作成の設定
    - Notion統合の設定
 
-3. **RAGシステムの構築**
+4. **RAGシステムの構築**
    - 社内ドキュメントのインデックス化
    - コードベースの登録
 
-4. **本番デプロイ**
+5. **本番デプロイ**
    - Supabase等のマネージドPostgreSQLに移行
    - Modalを本番環境にデプロイ
    - APIサーバーをクラウドにデプロイ
 
 ## 📖 ドキュメント
 
-- [アーキテクチャ詳細](./docs/architecture.md)
-- [API仕様書](./docs/api-spec.md)
+- [LLMプロバイダー設定ガイド](./docs/LLM_PROVIDER_CONFIGURATION.md)
 - [MentraOS開発ガイド](./docs/mentra_developer_tips.md)
+- [アーキテクチャ詳細](./docs/architecture.md)（作成予定）
+- [API仕様書](./docs/api-spec.md)（作成予定）
 
 ## 💬 サポート
 

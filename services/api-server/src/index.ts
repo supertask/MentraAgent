@@ -49,7 +49,7 @@ fastify.decorate('redis', redisService);
 
 // ルートの登録
 await fastify.register(deviceRouter, { prefix: '/api/device' });
-await fastify.register(sessionRouter, { prefix: '/api/session' });
+await fastify.register(sessionRouter, { prefix: '/api/sessions' });
 await fastify.register(processingRouter, { prefix: '/api/processing' });
 await fastify.register(webhookRouter, { prefix: '/api/webhook' });
 

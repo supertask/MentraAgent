@@ -47,6 +47,8 @@ interface Config {
   };
   ai: {
     provider: 'modal' | 'replicate' | 'runpod';
+    primaryLlmProvider: 'openai' | 'anthropic';
+    enableLlmFallback: boolean;
     modal?: {
       tokenId: string;
       tokenSecret: string;
@@ -54,9 +56,11 @@ interface Config {
     };
     openai: {
       apiKey: string;
+      model: string;
     };
     anthropic: {
       apiKey: string;
+      model: string;
     };
   };
   vectorDb: {
@@ -194,18 +198,22 @@ export const config: Config = {
 
   ai: {
     provider: getEnv('AI_PROVIDER', 'modal') as 'modal' | 'replicate' | 'runpod',
-    modal: process.env.MODAL_TOKEN_ID
+    primaryLlmProvider: getEnv('PRIMARY_LLM_PROVIDER', 'openai') as 'openai' | 'anthropic',
+    enableLlmFallback: getEnvBoolean('ENABLE_LLM_FALLBACK', true),
+    modal: process.env.MODAL_API_URL || process.env.MODAL_TOKEN_ID
       ? {
-          tokenId: getEnv('MODAL_TOKEN_ID'),
-          tokenSecret: getEnv('MODAL_TOKEN_SECRET'),
+          tokenId: process.env.MODAL_TOKEN_ID || '',
+          tokenSecret: process.env.MODAL_TOKEN_SECRET || '',
           apiUrl: getEnv('MODAL_API_URL', ''),
         }
       : undefined,
     openai: {
       apiKey: getEnv('OPENAI_API_KEY', ''),
+      model: getEnv('OPENAI_MODEL', 'gpt-4o'),
     },
     anthropic: {
       apiKey: getEnv('ANTHROPIC_API_KEY', ''),
+      model: getEnv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022'),
     },
   },
 
