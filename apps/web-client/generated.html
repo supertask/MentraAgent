@@ -767,11 +767,24 @@
       const techStack = summary.tech_stack || {};
       const mermaidDiagram = summary.mermaid_diagram || '';
       
+      // README.mdファイルを探す
+      const readmeFile = data.files.find(f => f.path.toLowerCase().includes('readme.md'));
+      const hasReadme = !!readmeFile;
+      
       body.innerHTML = `
         <div class="readme-container">
           <h1 class="readme-title">${projectName}</h1>
           
-          ${description ? `
+          ${hasReadme ? `
+            <div class="readme-section" style="background: var(--surface-color); padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+              <h2>💻 生成されたコード - README.md</h2>
+              <div class="readme-preview">
+                <pre style="white-space: pre-wrap; font-family: inherit; background: transparent; padding: 0; margin: 0;">${escapeHtml(readmeFile.content)}</pre>
+              </div>
+            </div>
+          ` : ''}
+          
+          ${!hasReadme && description ? `
             <div class="readme-section">
               <h2>📖 概要</h2>
               <p>${description}</p>
