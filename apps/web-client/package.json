@@ -1,0 +1,22 @@
+{
+  "name": "@realworld-agent/web-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Webカメラ入力用フロントエンド",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@realworld-agent/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  }
+}
+

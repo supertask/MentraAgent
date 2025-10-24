@@ -1,0 +1,173 @@
+// Prisma Schema
+// データベーススキーマ定義
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// セッション
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  deviceType   String   // 'mentra' | 'webcam'
+  status       String   @default("active") // 'active' | 'paused' | 'completed' | 'error'
+  startTime    DateTime @default(now())
+  endTime      DateTime?
+  
+  transcriptions Transcription[]
+  photos         Photo[]
+  locations      Location[]
+  importantMoments ImportantMoment[]
+  specifications Specification[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([startTime])
+}
+
+// 文字起こし
+model Transcription {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  text        String   @db.Text
+  isFinal     Boolean  @default(false)
+  confidence  Float?
+  language    String?
+  speaker     String?
+  
+  timestamp   DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([sessionId])
+  @@index([timestamp])
+  @@index([speaker])
+}
+
+// 写真
+model Photo {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  filename    String
+  storageKey  String   @unique
+  mimeType    String
+  size        Int
+  width       Int?
+  height      Int?
+  
+  relatedText String?  @db.Text
+  analysis    Json?
+  
+  timestamp   DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([sessionId])
+  @@index([timestamp])
+}
+
+// 位置情報
+model Location {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  lat         Float
+  lng         Float
+  accuracy    Float
+  
+  timestamp   DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([sessionId])
+  @@index([timestamp])
+}
+
+// 重要箇所
+model ImportantMoment {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  text        String?  @db.Text
+  reason      String
+  importance  Float
+  keywords    String[]
+  entities    String[]
+  
+  photoId     String?
+  
+  timestamp   DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([sessionId])
+  @@index([timestamp])
+  @@index([importance])
+}
+
+// 仕様書
+model Specification {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  title       String
+  summary     String   @db.Text
+  content     Json     // Specificationの詳細構造
+  
+  status      String   @default("draft") // 'draft' | 'review' | 'approved' | 'archived'
+  
+  slackUrl    String?
+  githubUrl   String?
+  notionUrl   String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([sessionId])
+  @@index([status])
+}
+
+// ユーザー（オプション）
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String
+  
+  settings    Json?    // ユーザー固有の設定
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([email])
+}
+
+// RAGドキュメント
+model Document {
+  id          String   @id @default(uuid())
+  
+  title       String
+  content     String   @db.Text
+  source      String   // 'github' | 'notion' | 'slack' | 'manual'
+  sourceUrl   String?
+  
+  vectorId    String?  // Vector DBのID
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([source])
+  @@index([vectorId])
+}
+

@@ -1,0 +1,24 @@
+{
+  "name": "@realworld-agent/mentra-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MentraOS統合アプリケーション",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "build": "tsc",
+    "start": "bun dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@realworld-agent/shared": "workspace:*",
+    "@mentra/sdk": "latest",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "bun-types": "^1.1.38",
+    "typescript": "^5.7.2"
+  }
+}
+

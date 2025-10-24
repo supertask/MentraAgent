@@ -1,0 +1,43 @@
+{
+  "name": "realworld-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mentra GlassまたはWebカメラからのリアルタイム音声・映像を処理し、仕様書やコードを自動生成するAIエージェントシステム",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "bun --cwd services/api-server dev",
+    "dev:web": "bun --cwd apps/web-client dev",
+    "dev:mentra": "bun --cwd apps/mentra-app dev",
+    "build": "bun run build:shared && bun run build:apps && bun run build:services",
+    "build:shared": "bun --cwd packages/shared build",
+    "build:apps": "bun --cwd apps/web-client build && bun --cwd apps/mentra-app build",
+    "build:services": "bun --cwd services/api-server build",
+    "db:migrate": "bun --cwd services/api-server db:migrate",
+    "db:studio": "bun --cwd services/api-server db:studio",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "modal:deploy": "cd services/gpu-server && modal deploy modal_app.py",
+    "modal:dev": "cd services/gpu-server && modal serve modal_app.py",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "clean": "bun run clean:apps && bun run clean:services",
+    "clean:apps": "rm -rf apps/*/dist apps/*/node_modules",
+    "clean:services": "rm -rf services/*/dist services/*/node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "bun-types": "^1.1.38",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.1.0"
+  }
+}
+

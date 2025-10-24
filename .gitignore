@@ -6,6 +6,76 @@ __pycache__/
 reference/MentraOS/
 .DS_Store
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Lock files (uncomment if you want to ignore them)
+# bun.lock
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Storage and logs directories
+storage/
+logs/
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Temporary files (user scripts)
+etc/tmp/
+tmp/
+*.tmp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Prisma
+**/prisma/migrations/
+prisma/generated/
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Gradle (Android)
+.gradle/
+**/build/
+local.properties
+gradle-app.setting
+
+# Xcode (iOS)
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# Credentials and secrets
+credentials/
+secrets/
+*.pem
+*.key
+*.cert
+
 # C extensions
 *.so
 

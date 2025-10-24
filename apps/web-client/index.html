@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Realworld Agent - Webカメラ入力</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎥 Realworld Agent</h1>
+      <p class="subtitle">リアルタイム音声・映像からAIが仕様書とコードを生成</p>
+    </header>
+
+    <main>
+      <!-- ステータスバー -->
+      <div class="status-bar">
+        <div class="status-item">
+          <span class="status-label">接続状態:</span>
+          <span id="connection-status" class="status-value disconnected">未接続</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">セッション:</span>
+          <span id="session-id" class="status-value">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">録画時間:</span>
+          <span id="recording-time" class="status-value">00:00:00</span>
+        </div>
+      </div>
+
+      <!-- ビデオプレビュー -->
+      <div class="video-section">
+        <div class="video-container">
+          <video id="video-preview" autoplay muted playsinline></video>
+          <div id="video-overlay" class="video-overlay">
+            <button id="start-button" class="primary-button">
+              <span class="button-icon">▶</span>
+              開始
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- コントロールパネル -->
+      <div class="control-panel">
+        <div class="control-group">
+          <h3>デバイス設定</h3>
+          <div class="control-item">
+            <label for="camera-select">カメラ:</label>
+            <select id="camera-select" disabled>
+              <option>読み込み中...</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label for="microphone-select">マイク:</label>
+            <select id="microphone-select" disabled>
+              <option>読み込み中...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>処理設定</h3>
+          <div class="control-item">
+            <label>
+              <input type="checkbox" id="enable-transcription" checked>
+              リアルタイム文字起こし
+            </label>
+          </div>
+          <div class="control-item">
+            <label>
+              <input type="checkbox" id="enable-speaker-diarization" checked>
+              話者分離
+            </label>
+          </div>
+          <div class="control-item">
+            <label>
+              <input type="checkbox" id="enable-vision" checked>
+              画像認識
+            </label>
+          </div>
+          <div class="control-item">
+            <label>
+              <input type="checkbox" id="enable-auto-capture" checked>
+              重要箇所の自動撮影
+            </label>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>アクション</h3>
+          <button id="capture-button" class="secondary-button" disabled>
+            📸 写真を撮影
+          </button>
+          <button id="generate-spec-button" class="secondary-button" disabled>
+            📄 仕様書を生成
+          </button>
+          <button id="stop-button" class="danger-button" disabled>
+            ⏹ 停止
+          </button>
+        </div>
+      </div>
+
+      <!-- ログ・文字起こし表示 -->
+      <div class="output-section">
+        <div class="output-container">
+          <h3>リアルタイム文字起こし</h3>
+          <div id="transcription-output" class="output-content">
+            <p class="placeholder">文字起こしがここに表示されます...</p>
+          </div>
+        </div>
+
+        <div class="output-container">
+          <h3>重要箇所</h3>
+          <div id="important-moments" class="output-content">
+            <p class="placeholder">重要な箇所が自動検出されます...</p>
+          </div>
+        </div>
+
+        <div class="output-container">
+          <h3>システムログ</h3>
+          <div id="system-log" class="output-content log">
+            <p class="log-info">システム起動しました</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>Powered by MentraOS & Modal • <a href="https://github.com/your-repo" target="_blank">GitHub</a></p>
+    </footer>
+  </div>
+
+  <script type="module" src="/app.ts"></script>
+</body>
+</html>
+
