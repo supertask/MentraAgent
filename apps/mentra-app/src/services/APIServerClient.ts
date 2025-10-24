@@ -103,6 +103,29 @@ export class APIServerClient {
   }
 
   /**
+   * コード生成依頼
+   */
+  async generateCode(data: {
+    sessionId: string;
+    prompt: string;
+    language?: string;
+    framework?: string;
+  }): Promise<{
+    files: Array<{ path: string; content: string; language: string }>;
+    dependencies: string[];
+    instructions: string;
+    model: string;
+  }> {
+    try {
+      const response = await this.post(`/api/processing/generate-code`, data);
+      return response;
+    } catch (error) {
+      console.error('Failed to generate code:', error);
+      throw error;
+    }
+  }
+
+  /**
    * セッション終了
    */
   async endSession(sessionId: string): Promise<void> {

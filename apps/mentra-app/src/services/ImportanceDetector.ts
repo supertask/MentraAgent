@@ -29,6 +29,32 @@ export class ImportanceDetector implements IImportanceDetector {
     '至急',
   ];
 
+  // コード生成トリガーキーワード
+  private readonly codeGenerationKeywords = [
+    'プログラム',
+    'コード',
+    'ソースコード',
+    'スクリプト',
+    '実装',
+    '開発',
+    'プログラミング',
+    'コーディング',
+  ];
+
+  // コード生成の意図を示すフレーズ
+  private readonly codeGenerationPhrases = [
+    '生成',
+    '作成',
+    '作って',
+    '書いて',
+    'つくって',
+    'かいて',
+    'generate',
+    'create',
+    'write',
+    'make',
+  ];
+
   // 固有表現のパターン（簡易版）
   private readonly entityPatterns = [
     /[A-Z][a-zA-Z]+(?:[A-Z][a-zA-Z]+)+/, // PascalCase (クラス名など)
@@ -105,6 +131,88 @@ export class ImportanceDetector implements IImportanceDetector {
 
     // 重複を削除
     return Array.from(new Set(entities));
+  }
+
+  /**
+   * コード生成の意図を検出
+   * ユーザーが「プログラム生成して」「コード作って」などの要求をしているか判定
+   */
+  detectCodeGenerationIntent(text: string): {
+    shouldGenerate: boolean;
+    confidence: number;
+    extractedPrompt: string;
+  } {
+    const normalizedText = text.toLowerCase();
+    let confidence = 0;
+
+    // コード生成キーワードのチェック
+    const hasCodeKeyword = this.codeGenerationKeywords.some((keyword) =>
+      normalizedText.includes(keyword.toLowerCase())
+    );
+
+    if (!hasCodeKeyword) {
+      return {
+        shouldGenerate: false,
+        confidence: 0,
+        extractedPrompt: '',
+      };
+    }
+
+    // 生成の意図を示すフレーズのチェック
+    const hasGenerationIntent = this.codeGenerationPhrases.some((phrase) =>
+      normalizedText.includes(phrase.toLowerCase())
+    );
+
+    if (hasGenerationIntent) {
+      confidence += 0.6;
+    }
+
+    // 依頼の表現をチェック
+    const requestPatterns = [
+      /してください/,
+      /してほしい/,
+      /してくれ/,
+      /お願い/,
+      /頼む/,
+      /欲しい/,
+      /ください/,
+      /please/i,
+    ];
+
+    const hasRequestExpression = requestPatterns.some((pattern) =>
+      pattern.test(text)
+    );
+
+    if (hasRequestExpression) {
+      confidence += 0.3;
+    }
+
+    // 具体的な言語・フレームワークの言及
+    const techPatterns = [
+      /python/i,
+      /javascript/i,
+      /typescript/i,
+      /react/i,
+      /vue/i,
+      /node\.?js/i,
+      /java/i,
+      /go/i,
+      /rust/i,
+    ];
+
+    const hasTechMention = techPatterns.some((pattern) => pattern.test(text));
+
+    if (hasTechMention) {
+      confidence += 0.2;
+    }
+
+    const shouldGenerate = confidence >= 0.7;
+
+    return {
+      shouldGenerate,
+      confidence,
+      extractedPrompt: shouldGenerate ? text : '',
+    };
   }
 
   /**

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Realworld Agent - Webカメラ入力</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎥 Realworld Agent</h1>
+      <p class="subtitle">リアルタイム音声・映像からAIが仕様書とコードを生成</p>
+    </header>
+
+    <main>
+      <!-- ステータスバー -->
+      <div class="status-bar">
+        <div class="status-item">
+          <span class="status-label">接続状態:</span>
+          <span id="connection-status" class="status-value disconnected">未接続</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">セッション:</span>
+          <span id="session-id" class="status-value">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">録画時間:</span>
+          <span id="recording-time" class="status-value">00:00:00</span>
+        </div>
+      </div>
+
+      <!-- ビデオプレビュー -->
+      <div class="video-section">
+        <div class="video-container">
+          <video id="video-preview" autoplay muted playsinline></video>
+          <div id="video-overlay" class="video-overlay">
+            <button id="start-button" class="primary-button">
+              <span class="button-icon">▶</span>
+              開始
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- コントロールパネル -->
+      <div class="control-panel">
+        <div class="control-group">
+          <h3>デバイス設定</h3>
+          <div class="control-item">
+            <label for="camera-select">カメラ:</label>
+            <select id="camera-select" disabled>
+              <option>読み込み中...</option>
+            </select>
+          </div>
+          <div class="control-item">
+            <label for="microphone-select">マイク:</label>
+            <select id="microphone-select" disabled>
+              <option>読み込み中...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>処理設定</h3>
+          <div class="control-item">
+            <label>
+              <input type="checkbox" id="enable-transcription" checked>
+              リアルタイム文字起こし
+            </label>
+          </div>
+          <div class="control-item">
+            <label>
+              <input type="checkbox" id="enable-speaker-diarization" checked>
+              話者分離
+            </label>
+          </div>
+          <div class="control-item">
+            <label>
+              <input type="checkbox" id="enable-vision" checked>
+              画像認識
+            </label>
+          </div>
+          <div class="control-item">
+            <label>
+              <input type="checkbox" id="enable-auto-capture" checked>
+              重要箇所の自動撮影
+            </label>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>アクション</h3>
+          <button id="capture-button" class="secondary-button" disabled>
+            📸 写真を撮影
+          </button>
+          <button id="generate-spec-button" class="secondary-button" disabled>
+            📄 仕様書を生成
+          </button>
+          <button id="generate-code-button" class="secondary-button" disabled>
+            💻 コードを生成
+          </button>
+          <button id="stop-button" class="danger-button" disabled>
+            ⏹ 停止
+          </button>
+        </div>
+      </div>
+
+      <!-- ログ・文字起こし表示 -->
+      <div class="output-section">
+        <div class="output-container">
+          <h3>リアルタイム文字起こし</h3>
+          <div id="transcription-output" class="output-content">
+            <p class="placeholder">文字起こしがここに表示されます...</p>
+          </div>
+        </div>
+
+        <div class="output-container">
+          <h3>重要箇所</h3>
+          <div id="important-moments" class="output-content">
+            <p class="placeholder">重要な箇所が自動検出されます...</p>
+          </div>
+        </div>
+
+        <div class="output-container">
+          <h3>システムログ</h3>
+          <div id="system-log" class="output-content log">
+            <p class="log-info">システム起動しました</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- コード生成モーダル -->
+    <div id="code-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>💻 コード生成</h2>
+          <button id="close-modal" class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="code-prompt">何を作りますか？（任意）</label>
+            <textarea 
+              id="code-prompt" 
+              rows="3" 
+              placeholder="空欄の場合は、文字起こしから自動的に推測します。&#10;例: Pythonでファイルを読み込んで行数をカウントするプログラムを生成してください"
+            ></textarea>
+            <small style="color: var(--text-secondary); display: block; margin-top: 8px;">
+              💡 入力しない場合は、最近の文字起こしから自動的に要求を推測します
+            </small>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="code-language">言語（オプション）</label>
+              <select id="code-language">
+                <option value="">自動検出</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="java">Java</option>
+                <option value="go">Go</option>
+                <option value="rust">Rust</option>
+                <option value="ruby">Ruby</option>
+                <option value="php">PHP</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="code-framework">フレームワーク（オプション）</label>
+              <select id="code-framework">
+                <option value="">なし</option>
+                <option value="react">React</option>
+                <option value="vue">Vue</option>
+                <option value="angular">Angular</option>
+                <option value="nextjs">Next.js</option>
+                <option value="express">Express</option>
+                <option value="fastapi">FastAPI</option>
+                <option value="django">Django</option>
+                <option value="flask">Flask</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="create-pr">
+              GitHub PRを自動作成する
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button id="generate-code-submit" class="primary-button">
+              🚀 生成する
+            </button>
+            <button id="cancel-code-gen" class="secondary-button">
+              キャンセル
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Powered by MentraOS & Modal • <a href="https://github.com/your-repo" target="_blank">GitHub</a></p>
+    </footer>
+  </div>
+
+  <script type="module" src="/app.ts"></script>
+</body>
+</html>
+

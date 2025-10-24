@@ -8,7 +8,7 @@ Mentra GlassまたはWebカメラからのリアルタイム音声・映像を�
 
 - 📝 **議事録・要約**: 複数話者の会話を自動で文字起こし・要約
 - 📄 **仕様書**: 会議内容から技術仕様書を自動生成
-- 💻 **コード**: 要件に基づいたコード生成とPR作成
+- 💻 **コード**: 音声からの意図検出で自動コード生成とGitHub PR作成 🆕
 - 📊 **ドキュメント**: Notionへの自動ドキュメント化
 - 🔔 **通知**: Slackへの自動通知と共有
 
@@ -115,7 +115,10 @@ bun run dev:api
 bun run dev:web
 ```
 
-ブラウザで `http://localhost:5173` を開く
+ブラウザで以下のURLを開く：
+- `http://localhost:5173` - トップページ
+- `http://localhost:5173/webcam.html` - Webカメラ機能
+- `http://localhost:5173/generated.html` - 生成履歴
 
 #### MentraOSモード
 
@@ -254,12 +257,25 @@ ENABLE_LLM_FALLBACK=true
 - ✅ 使用時のみ課金 → 待機コスト$0
 - ✅ LLMプロバイダー切り替え → 安価なモデルも選択可能
 
+## 🎯 新機能: コード自動生成
+
+音声から「Pythonでファイル読み込みプログラムを生成してください」と言うだけで、完全なコードを自動生成します！
+
+**特徴**:
+- 🎤 音声からの意図自動検出
+- 💻 複数ファイル・複数言語対応
+- 🔄 GitHub PR自動作成
+- 📝 仕様書コンテキストの統合
+
+詳細は [コード生成ガイド](./docs/CODE_GENERATION_GUIDE.md) を参照
+
 ## 📚 ドキュメント
 
-- [アーキテクチャ詳細](./docs/architecture.md)
-- [API仕様書](./docs/api-spec.md)
+- [**コード生成ガイド**](./docs/CODE_GENERATION_GUIDE.md) - 音声からのコード自動生成 🆕
+- [LLMプロバイダー設定](./docs/LLM_PROVIDER_CONFIGURATION.md) - OpenAI/Anthropic切り替え
 - [MentraOS開発ガイド](./docs/mentra_developer_tips.md)
-- [デプロイガイド](./docs/deployment.md)
+- [アーキテクチャ詳細](./docs/architecture.md)（作成予定）
+- [API仕様書](./docs/api-spec.md)（作成予定）
 
 ## 🤝 コントリビューション
 

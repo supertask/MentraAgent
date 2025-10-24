@@ -3,137 +3,320 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Realworld Agent - Webカメラ入力</title>
-  <link rel="stylesheet" href="/styles.css">
+  <title>Realworld Agent - リアルタイムAIコード生成</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-color: #2563eb;
+      --secondary-color: #0891b2;
+      --accent-color: #06b6d4;
+      --bg-color: #0f172a;
+      --surface-color: #1e293b;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: var(--bg-color);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 80px 0 60px;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+    }
+
+    .hero .subtitle {
+      font-size: 1.5rem;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      margin: 60px 0;
+    }
+
+    .feature-card {
+      background: var(--surface-color);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 30px;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary-color);
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2);
+    }
+
+    .feature-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+      color: var(--accent-color);
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .cta-section {
+      text-align: center;
+      margin: 80px 0;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+
+    .btn {
+      padding: 16px 32px;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+      transform: scale(1.05);
+    }
+
+    .btn-secondary {
+      background: var(--surface-color);
+      color: var(--text-primary);
+      border: 2px solid var(--primary-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--primary-color);
+      transform: scale(1.05);
+    }
+
+    .demo-section {
+      background: var(--surface-color);
+      border-radius: 12px;
+      padding: 40px;
+      margin: 60px 0;
+    }
+
+    .demo-section h2 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .demo-card {
+      background: var(--bg-color);
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid #334155;
+    }
+
+    .demo-card h4 {
+      color: var(--accent-color);
+      margin-bottom: 10px;
+    }
+
+    .demo-card pre {
+      background: #0a0f1e;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 0;
+      border-top: 1px solid #334155;
+      margin-top: 80px;
+      color: var(--text-secondary);
+    }
+
+    footer a {
+      color: var(--accent-color);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+
+      .hero .subtitle {
+        font-size: 1.2rem;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <header>
+    <section class="hero">
       <h1>🎥 Realworld Agent</h1>
-      <p class="subtitle">リアルタイム音声・映像からAIが仕様書とコードを生成</p>
-    </header>
+      <p class="subtitle">リアルタイム音声・映像からAIが仕様書とコードを自動生成</p>
+    </section>
 
-    <main>
-      <!-- ステータスバー -->
-      <div class="status-bar">
-        <div class="status-item">
-          <span class="status-label">接続状態:</span>
-          <span id="connection-status" class="status-value disconnected">未接続</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">セッション:</span>
-          <span id="session-id" class="status-value">-</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">録画時間:</span>
-          <span id="recording-time" class="status-value">00:00:00</span>
-        </div>
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon">🎤</div>
+        <h3>音声からコード生成</h3>
+        <p>「Pythonでファイル読み込みプログラムを作って」と話すだけで、完全なコードが自動生成されます。</p>
       </div>
 
-      <!-- ビデオプレビュー -->
-      <div class="video-section">
-        <div class="video-container">
-          <video id="video-preview" autoplay muted playsinline></video>
-          <div id="video-overlay" class="video-overlay">
-            <button id="start-button" class="primary-button">
-              <span class="button-icon">▶</span>
-              開始
-            </button>
-          </div>
-        </div>
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <h3>仕様書自動作成</h3>
+        <p>会議の内容から技術仕様書を自動生成。議事録作成の手間を大幅削減します。</p>
       </div>
 
-      <!-- コントロールパネル -->
-      <div class="control-panel">
-        <div class="control-group">
-          <h3>デバイス設定</h3>
-          <div class="control-item">
-            <label for="camera-select">カメラ:</label>
-            <select id="camera-select" disabled>
-              <option>読み込み中...</option>
-            </select>
-          </div>
-          <div class="control-item">
-            <label for="microphone-select">マイク:</label>
-            <select id="microphone-select" disabled>
-              <option>読み込み中...</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <h3>処理設定</h3>
-          <div class="control-item">
-            <label>
-              <input type="checkbox" id="enable-transcription" checked>
-              リアルタイム文字起こし
-            </label>
-          </div>
-          <div class="control-item">
-            <label>
-              <input type="checkbox" id="enable-speaker-diarization" checked>
-              話者分離
-            </label>
-          </div>
-          <div class="control-item">
-            <label>
-              <input type="checkbox" id="enable-vision" checked>
-              画像認識
-            </label>
-          </div>
-          <div class="control-item">
-            <label>
-              <input type="checkbox" id="enable-auto-capture" checked>
-              重要箇所の自動撮影
-            </label>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <h3>アクション</h3>
-          <button id="capture-button" class="secondary-button" disabled>
-            📸 写真を撮影
-          </button>
-          <button id="generate-spec-button" class="secondary-button" disabled>
-            📄 仕様書を生成
-          </button>
-          <button id="stop-button" class="danger-button" disabled>
-            ⏹ 停止
-          </button>
-        </div>
+      <div class="feature-card">
+        <div class="feature-icon">💻</div>
+        <h3>複数言語対応</h3>
+        <p>Python、JavaScript、TypeScript、Go、Rustなど、主要なプログラミング言語に対応しています。</p>
       </div>
 
-      <!-- ログ・文字起こし表示 -->
-      <div class="output-section">
-        <div class="output-container">
-          <h3>リアルタイム文字起こし</h3>
-          <div id="transcription-output" class="output-content">
-            <p class="placeholder">文字起こしがここに表示されます...</p>
-          </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>GitHub PR自動作成</h3>
+        <p>生成されたコードを自動的にGitHub Pull Requestとして作成。レビューもスムーズに。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>生成履歴管理</h3>
+        <p>過去に生成したコードを一覧で確認。いつでも見直しやダウンロードが可能です。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>高速処理</h3>
+        <p>GPT-4oやClaude 3.5 Sonnetを使用した高品質かつ高速なコード生成を実現。</p>
+      </div>
+    </section>
+
+    <section class="cta-section">
+      <h2>今すぐ始める</h2>
+      <div class="cta-buttons">
+        <a href="/webcam.html" class="btn btn-primary">🎥 Webカメラで開始</a>
+        <a href="/generated.html" class="btn btn-secondary">📂 生成履歴を見る</a>
+      </div>
+    </section>
+
+    <section class="demo-section">
+      <h2>使用例</h2>
+      <div class="demo-grid">
+        <div class="demo-card">
+          <h4>例1: Pythonスクリプト</h4>
+          <pre>音声入力:
+「Pythonでファイルを読み込んで
+行数をカウントするプログラムを
+生成してください」
+
+→ 自動生成完了！</pre>
         </div>
 
-        <div class="output-container">
-          <h3>重要箇所</h3>
-          <div id="important-moments" class="output-content">
-            <p class="placeholder">重要な箇所が自動検出されます...</p>
-          </div>
+        <div class="demo-card">
+          <h4>例2: Reactコンポーネント</h4>
+          <pre>音声入力:
+「TypeScriptとReactで
+ログインフォームを作って」
+
+→ バリデーション付きで生成！</pre>
         </div>
 
-        <div class="output-container">
-          <h3>システムログ</h3>
-          <div id="system-log" class="output-content log">
-            <p class="log-info">システム起動しました</p>
-          </div>
+        <div class="demo-card">
+          <h4>例3: Goウェブサーバー</h4>
+          <pre>音声入力:
+「Goでシンプルな
+ウェブサーバーを実装して」
+
+→ 完全なコードが生成！</pre>
         </div>
       </div>
-    </main>
+    </section>
+
+    <section class="demo-section">
+      <h2>主な機能</h2>
+      <div style="padding: 20px; line-height: 2;">
+        <p>✅ リアルタイム音声認識と文字起こし</p>
+        <p>✅ 重要箇所の自動検出と撮影</p>
+        <p>✅ コンテキストを活用した高精度コード生成</p>
+        <p>✅ 複数ファイル・ディレクトリ構造の自動生成</p>
+        <p>✅ 依存関係とセットアップ手順の自動作成</p>
+        <p>✅ ローカルストレージへの自動保存</p>
+        <p>✅ Slack / GitHub / Notion 連携</p>
+      </div>
+    </section>
 
     <footer>
-      <p>Powered by MentraOS & Modal • <a href="https://github.com/your-repo" target="_blank">GitHub</a></p>
+      <p>Powered by MentraOS & Modal • <a href="https://github.com/your-repo" target="_blank">GitHub</a> • <a href="/docs/CODE_GENERATION_GUIDE.md" target="_blank">ドキュメント</a></p>
+      <p style="margin-top: 10px; font-size: 0.9rem;">© 2025 Realworld Agent. All rights reserved.</p>
     </footer>
   </div>
-
-  <script type="module" src="/app.ts"></script>
 </body>
 </html>
-

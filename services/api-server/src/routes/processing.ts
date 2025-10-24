@@ -73,13 +73,15 @@ export const processingRouter: FastifyPluginAsync = async (fastify) => {
         photoCount: photos.length,
       });
 
-      // コンテキストの整形
+      // コンテキストの整形（空のテキストは除外）
       const context = {
-        transcriptions: transcriptions.map((t) => ({
-          text: t.text,
-          timestamp: t.timestamp,
-          speaker: t.speaker,
-        })),
+        transcriptions: transcriptions
+          .filter((t) => t.text && t.text.trim() !== '')
+          .map((t) => ({
+            text: t.text,
+            timestamp: t.timestamp,
+            speaker: t.speaker,
+          })),
         photos: photos.map((p) => ({
           filename: p.filename,
           storageKey: p.requestId,
@@ -146,18 +148,334 @@ export const processingRouter: FastifyPluginAsync = async (fastify) => {
 
   // コード生成
   fastify.post('/generate-code', async (request, reply) => {
-    const body = request.body as any;
+    try {
+      const body = request.body as any;
+      const { sessionId, prompt, language, framework, createPR } = body;
 
-    logger.info('Code generation request', {
-      sessionId: body.sessionId,
-    });
+      if (!sessionId) {
+        return reply.status(400).send({ error: 'sessionId is required' });
+      }
 
-    // TODO: コード生成実装
+      // プロンプトが空の場合は文字起こしから推測
+      let finalPrompt = prompt;
+      if (!finalPrompt || finalPrompt.trim() === '') {
+        const transcriptions = await transcriptionRepo.findBySessionId(sessionId);
+        if (transcriptions.length === 0) {
+          return reply.status(400).send({ 
+            error: 'プロンプトまたは文字起こしが必要です' 
+          });
+        }
+        
+        // 最新の文字起こしを使用（空のテキストは除外）
+        const recentTranscriptions = transcriptions
+          .filter((t) => t.text && t.text.trim() !== '')
+          .slice(-5);
+        
+        if (recentTranscriptions.length === 0) {
+          return reply.status(400).send({ 
+            error: 'プロンプトまたは有効な文字起こしが必要です' 
+          });
+        }
+        
+        finalPrompt = recentTranscriptions.map(t => t.text).join(' ');
+        
+        logger.info('文字起こしからプロンプトを生成しました', {
+          sessionId,
+          prompt: finalPrompt.substring(0, 100),
+        });
+      }
 
-    return {
-      files: [],
-      dependencies: [],
-    };
+      logger.info('Code generation request', {
+        sessionId,
+        prompt: finalPrompt.substring(0, 100), // ログは最初の100文字のみ
+        createPR: !!createPR,
+      });
+
+      // セッションのコンテキストを取得
+      const transcriptions = await transcriptionRepo.findBySessionId(sessionId);
+      const photos = await photoRepo.findBySessionId(sessionId);
+
+      // 最新の仕様書を取得（オプション）
+      const specifications = await specRepo.findBySessionId(sessionId);
+      const latestSpec = specifications.length > 0 ? specifications[0] : null;
+
+      logger.info('コンテキストを取得しました', {
+        sessionId,
+        transcriptionCount: transcriptions.length,
+        photoCount: photos.length,
+        hasSpecification: !!latestSpec,
+      });
+
+      // コンテキストの整形（空のテキストは除外）
+      const context = {
+        transcriptions: transcriptions
+          .filter((t) => t.text && t.text.trim() !== '')
+          .map((t) => ({
+            text: t.text,
+            timestamp: t.timestamp,
+            speaker: t.speaker,
+          })),
+        specification: latestSpec ? (latestSpec.content as any).markdown : '',
+      };
+
+      // Modal GPUサーバーでコードを生成
+      logger.info('Modal GPUサーバーでコード生成中...', { sessionId });
+      const generatedCode = await modalGPU.generateCode({
+        prompt: finalPrompt,
+        context,
+        language,
+        framework,
+      });
+
+      logger.info('コードを生成しました', {
+        sessionId,
+        fileCount: generatedCode.files.length,
+      });
+
+      // ストレージに保存
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const generationId = `gen-${Date.now()}`;
+      const storageDir = path.join(process.cwd(), 'storage', 'generated-code', generationId);
+      
+      await fs.mkdir(storageDir, { recursive: true });
+      
+      // 各ファイルを保存
+      for (const file of generatedCode.files) {
+        const filePath = path.join(storageDir, file.path);
+        const fileDir = path.dirname(filePath);
+        await fs.mkdir(fileDir, { recursive: true });
+        await fs.writeFile(filePath, file.content, 'utf-8');
+      }
+      
+      // メタデータを保存
+      const metadata = {
+        generationId,
+        timestamp: new Date().toISOString(),
+        sessionId,
+        prompt: finalPrompt,
+        language,
+        framework,
+        model: generatedCode.model,
+        fileCount: generatedCode.files.length,
+        files: generatedCode.files.map(f => ({
+          path: f.path,
+          language: f.language,
+        })),
+        dependencies: generatedCode.dependencies,
+        instructions: generatedCode.instructions,
+        summary: generatedCode.summary || {},
+      };
+      
+      await fs.writeFile(
+        path.join(storageDir, 'metadata.json'),
+        JSON.stringify(metadata, null, 2),
+        'utf-8'
+      );
+      
+      logger.info('コードをストレージに保存しました', {
+        generationId,
+        storageDir,
+      });
+
+      // GitHub PR作成（オプション）
+      let prUrl: string | undefined;
+      if (createPR && createPR.enabled) {
+        try {
+          const { GitHubIntegration } = await import('../integrations/github');
+          const github = new GitHubIntegration();
+
+          const prTitle = createPR.title || `自動生成: ${prompt.substring(0, 50)}`;
+          const prBody = `
+## 自動生成されたコード
+
+**プロンプト**: ${prompt}
+
+**生成されたファイル**:
+${generatedCode.files.map((f) => `- \`${f.path}\` (${f.language})`).join('\n')}
+
+**依存関係**:
+\`\`\`
+${generatedCode.dependencies.join('\n')}
+\`\`\`
+
+**セットアップ手順**:
+${generatedCode.instructions}
+
+---
+_このPRは Realworld Agent によって自動生成されました_
+          `;
+
+          prUrl = await github.createPullRequest({
+            title: prTitle,
+            body: prBody,
+            head: '', // GitHubIntegrationで自動生成
+            base: createPR.baseBranch || 'main',
+            files: generatedCode.files,
+          });
+
+          logger.info('GitHub PRを作成しました', { prUrl });
+        } catch (error) {
+          logger.error('GitHub PR作成エラー', error as Error);
+          // PR作成に失敗してもコード生成結果は返す
+        }
+      }
+
+      return {
+        generationId,
+        fileCount: generatedCode.files.length,
+        model: generatedCode.model,
+        storageDir: `/storage/generated-code/${generationId}`,
+        prUrl,
+        message: `コードを生成しました（${generatedCode.files.length}ファイル）`,
+      };
+    } catch (error) {
+      logger.error('コード生成エラー', error as Error);
+      return reply.status(500).send({
+        error: 'Failed to generate code',
+        message: (error as Error).message,
+      });
+    }
+  });
+
+  // 生成履歴一覧を取得
+  fastify.get('/generated-code', async (request, reply) => {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      const storageDir = path.join(process.cwd(), 'storage', 'generated-code');
+      
+      // ディレクトリが存在しない場合は空配列を返す
+      try {
+        await fs.access(storageDir);
+      } catch {
+        return { generations: [] };
+      }
+      
+      const entries = await fs.readdir(storageDir);
+      const generations = [];
+      
+      for (const entry of entries) {
+        const metadataPath = path.join(storageDir, entry, 'metadata.json');
+        try {
+          const metadataContent = await fs.readFile(metadataPath, 'utf-8');
+          const metadata = JSON.parse(metadataContent);
+          generations.push(metadata);
+        } catch (error) {
+          logger.warn(`メタデータ読み込みエラー: ${entry}`, error as Error);
+        }
+      }
+      
+      // 新しい順にソート
+      generations.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      
+      return { generations };
+    } catch (error) {
+      logger.error('生成履歴取得エラー', error as Error);
+      return reply.status(500).send({
+        error: 'Failed to get generated code list',
+        message: (error as Error).message,
+      });
+    }
+  });
+
+  // 特定の生成を取得
+  fastify.get('/generated-code/:generationId', async (request, reply) => {
+    try {
+      const { generationId } = request.params as { generationId: string };
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      const generationDir = path.join(process.cwd(), 'storage', 'generated-code', generationId);
+      const metadataPath = path.join(generationDir, 'metadata.json');
+      
+      const metadataContent = await fs.readFile(metadataPath, 'utf-8');
+      const metadata = JSON.parse(metadataContent);
+      
+      // ファイル内容を読み込む
+      const files = [];
+      for (const fileInfo of metadata.files) {
+        const filePath = path.join(generationDir, fileInfo.path);
+        const content = await fs.readFile(filePath, 'utf-8');
+        files.push({
+          ...fileInfo,
+          content,
+        });
+      }
+      
+      return {
+        ...metadata,
+        files,
+      };
+    } catch (error) {
+      logger.error('生成コード取得エラー', error as Error);
+      return reply.status(404).send({
+        error: 'Generation not found',
+        message: (error as Error).message,
+      });
+    }
+  });
+
+  // ZIPダウンロードエンドポイント
+  fastify.get('/generated-code/:generationId/download', async (request, reply) => {
+    try {
+      const { generationId } = request.params as { generationId: string };
+      
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const archiver = await import('archiver');
+      
+      const generationDir = path.join(process.cwd(), 'storage', 'generated-code', generationId);
+      const metadataPath = path.join(generationDir, 'metadata.json');
+      
+      // メタデータの存在確認
+      try {
+        await fs.access(metadataPath);
+      } catch {
+        return reply.status(404).send({ error: 'Generation not found' });
+      }
+      
+      // ZIPファイル名
+      const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf-8'));
+      const projectName = metadata.summary?.name || 'generated-project';
+      const sanitizedName = projectName.replace(/[^a-zA-Z0-9-_]/g, '_');
+      const zipFilename = `${sanitizedName}-${generationId}.zip`;
+      
+      // ZIPストリームの作成
+      reply.header('Content-Type', 'application/zip');
+      reply.header('Content-Disposition', `attachment; filename="${zipFilename}"`);
+      
+      const archive = archiver.default('zip', {
+        zlib: { level: 9 }
+      });
+      
+      archive.on('error', (err: Error) => {
+        logger.error('ZIP作成エラー', err);
+        reply.send(err);
+      });
+      
+      // ストリームをレスポンスにパイプ
+      reply.send(archive);
+      
+      // ディレクトリの内容をZIPに追加
+      archive.directory(generationDir, false);
+      
+      await archive.finalize();
+      
+      logger.info('ZIPダウンロード完了', { generationId, filename: zipFilename });
+      
+    } catch (error) {
+      logger.error('ZIPダウンロードエラー', error as Error);
+      return reply.status(500).send({
+        error: 'Failed to create zip file',
+        message: (error as Error).message,
+      });
+    }
   });
 };
 

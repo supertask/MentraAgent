@@ -374,6 +374,96 @@ JSON形式で回答してください：
             else:
                 raise
 
+    @modal.method()
+    def generate_code(
+        self,
+        request: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        コード生成
+
+        Args:
+            request: コード生成リクエスト
+                - prompt: ユーザーの要求（必須）
+                - context: コンテキスト情報（文字起こし、仕様書など）
+                - language: プログラミング言語（オプション）
+                - framework: フレームワーク（オプション）
+
+        Returns:
+            生成されたコード
+        """
+        print(f"💻 コード生成開始（プライマリ: {self.primary_llm_provider}）")
+
+        # プロンプトの構築
+        prompt = self._build_code_generation_prompt(request)
+
+        try:
+            # プライマリLLMで試行
+            result = self._generate_text_with_provider(
+                prompt,
+                self.primary_llm_provider,
+                max_tokens=8192  # コード生成は長めに
+            )
+            
+            code_text = result["content"]
+            
+            # コードファイルの抽出
+            files = self._extract_code_files(code_text)
+            
+            # プロジェクト概要の抽出
+            project_summary = self._extract_project_summary(code_text)
+            
+            output = {
+                "files": files,
+                "dependencies": self._extract_dependencies(code_text),
+                "instructions": self._extract_instructions(code_text),
+                "summary": project_summary,
+                "model": result["model"],
+                "timestamp": datetime.now().isoformat(),
+            }
+
+            print(f"✅ コード生成完了（{len(files)}ファイル）")
+            print(f"📊 プロジェクト名: {project_summary['name']}")
+            return output
+
+        except Exception as e:
+            print(f"⚠️ プライマリLLM（{self.primary_llm_provider}）エラー: {e}")
+            
+            # フォールバックが有効な場合
+            if self.enable_llm_fallback:
+                fallback_provider = "anthropic" if self.primary_llm_provider == "openai" else "openai"
+                print(f"🔄 フォールバック: {fallback_provider}で再試行")
+                
+                try:
+                    result = self._generate_text_with_provider(
+                        prompt,
+                        fallback_provider,
+                        max_tokens=8192
+                    )
+                    
+                    code_text = result["content"]
+                    files = self._extract_code_files(code_text)
+                    project_summary = self._extract_project_summary(code_text)
+                    
+                    output = {
+                        "files": files,
+                        "dependencies": self._extract_dependencies(code_text),
+                        "instructions": self._extract_instructions(code_text),
+                        "summary": project_summary,
+                        "model": result["model"],
+                        "timestamp": datetime.now().isoformat(),
+                    }
+
+                    print(f"✅ コード生成完了（フォールバック、{len(files)}ファイル）")
+                    print(f"📊 プロジェクト名: {project_summary['name']}")
+                    return output
+                    
+                except Exception as fallback_error:
+                    print(f"❌ フォールバックLLMもエラー: {fallback_error}")
+                    raise
+            else:
+                raise
+
     # ヘルパーメソッド
 
     def _extract_speakers(self, result: Dict) -> List[str]:
@@ -425,6 +515,386 @@ JSON形式で回答してください：
             if line.startswith("# "):
                 return line.replace("# ", "").strip()
         return "仕様書"
+
+    def _build_code_generation_prompt(self, request: Dict[str, Any]) -> str:
+        """コード生成用のプロンプトを構築"""
+        user_prompt = request.get("prompt", "")
+        context = request.get("context", {})
+        language = request.get("language", "")
+        framework = request.get("framework", "")
+        
+        transcriptions = context.get("transcriptions", [])
+        specification = context.get("specification", "")
+        
+        prompt = f"""
+以下の要求に基づいて、実装可能なコードを生成してください。
+
+# ユーザーの要求
+{user_prompt}
+
+"""
+        
+        # コンテキスト情報を追加
+        if specification:
+            prompt += f"""
+# 仕様書
+{specification}
+
+"""
+        
+        if transcriptions:
+            prompt += """
+# 会議の文字起こし
+"""
+            for trans in transcriptions[-10:]:  # 最新10件
+                speaker = trans.get("speaker", "不明")
+                text = trans.get("text", "")
+                prompt += f"\n[{speaker}] {text}"
+            prompt += "\n"
+        
+        # 言語・フレームワーク指定
+        if language:
+            prompt += f"""
+# 使用する言語
+{language}
+"""
+        
+        if framework:
+            prompt += f"""
+# 使用するフレームワーク
+{framework}
+"""
+        
+        prompt += """
+
+# 出力形式
+以下の形式で**必ず正確に**出力してください：
+
+## プロジェクト概要
+プロジェクト名: 【プロジェクト名】
+説明: 【1-2行の簡潔な説明】
+主な機能:
+- 機能1
+- 機能2
+- 機能3
+
+## 技術スタック
+- 言語: 【使用言語】
+- フレームワーク: 【使用フレームワーク】
+- 主要ライブラリ: 【主要なライブラリ3つ程度】
+
+## プロジェクト構造
+```mermaid
+graph TD
+    A[エントリーポイント] --> B[メインモジュール]
+    B --> C[サブモジュール1]
+    B --> D[サブモジュール2]
+    C --> E[ユーティリティ]
+    D --> E
+```
+（実際のプロジェクト構造に合わせてMermaid図を作成してください）
+
+## ファイル構成
+- file1.ext: 説明
+- file2.ext: 説明
+- README.md: プロジェクトドキュメント
+
+## 依存関係
+```
+package1==1.0.0
+package2==2.0.0
+```
+
+## コード
+
+### ファイル: README.md
+```markdown
+# 【プロジェクト名】
+
+## 概要
+【プロジェクトの詳細な説明】
+
+## 機能
+- 機能1の詳細
+- 機能2の詳細
+- 機能3の詳細
+
+## プロジェクト構造
+\```mermaid
+graph TD
+    A[エントリーポイント] --> B[メインモジュール]
+    B --> C[サブモジュール1]
+    B --> D[サブモジュール2]
+\```
+
+## セットアップ
+
+### 必要な環境
+- 言語のバージョン
+- その他の依存関係
+
+### インストール手順
+\```bash
+# 1. 依存関係のインストール
+pip install -r requirements.txt
+
+# 2. 環境変数の設定（必要な場合）
+export KEY=value
+\```
+
+## 使い方
+
+### 基本的な使用方法
+\```bash
+# 実行コマンド
+python main.py
+\```
+
+### オプション
+- `--option1`: オプション1の説明
+- `--option2`: オプション2の説明
+
+### 使用例
+\```bash
+# 例1
+python main.py --option1 value1
+
+# 例2
+python main.py --option2 value2
+\```
+
+## トラブルシューティング
+- よくある問題1とその解決方法
+- よくある問題2とその解決方法
+
+## ライセンス
+MIT License
+\```
+
+### ファイル: path/to/file1.ext
+```language
+// コードをここに記述
+// 詳細なコメントを含める
+// エラーハンドリングを実装する
+```
+
+### ファイル: path/to/file2.ext
+```language
+// コードをここに記述
+```
+
+## セットアップ手順
+1. 【具体的な手順1】
+2. 【具体的な手順2】
+3. 【具体的な手順3】
+
+## 実行方法
+\```bash
+# 実行コマンド
+command to run
+\```
+
+---
+
+**重要な要件：**
+- コードは完全に動作する状態で提供
+- エラーハンドリング、ログ、詳細なコメントを含める
+- ベストプラクティスに従う
+- README.mdは必ず生成する
+- Mermaid図でプロジェクト構造を可視化する
+- 実行可能で、すぐに試せる状態にする
+"""
+        
+        return prompt
+
+    def _extract_code_files(self, text: str) -> List[Dict[str, str]]:
+        """
+        生成されたテキストからコードファイルを抽出
+        
+        形式: ### ファイル: path/to/file.ext
+              ```language
+              code here
+              ```
+        """
+        import re
+        
+        files = []
+        
+        # パターン: ### ファイル: path/to/file.ext の後に ``` で囲まれたコード
+        pattern = r'###\s*ファイル:\s*([^\n]+)\s*```(\w+)?\s*\n(.*?)```'
+        matches = re.finditer(pattern, text, re.DOTALL)
+        
+        for match in matches:
+            filepath = match.group(1).strip()
+            language = match.group(2) or self._detect_language_from_path(filepath)
+            content = match.group(3).strip()
+            
+            files.append({
+                "path": filepath,
+                "content": content,
+                "language": language,
+            })
+            
+            print(f"  📄 抽出: {filepath} ({language})")
+        
+        # 代替パターン: ```language:filename
+        alt_pattern = r'```(\w+):([^\n]+)\s*\n(.*?)```'
+        alt_matches = re.finditer(alt_pattern, text, re.DOTALL)
+        
+        for match in alt_matches:
+            language = match.group(1).strip()
+            filepath = match.group(2).strip()
+            content = match.group(3).strip()
+            
+            # 既に同じファイルが抽出されていないかチェック
+            if not any(f["path"] == filepath for f in files):
+                files.append({
+                    "path": filepath,
+                    "content": content,
+                    "language": language,
+                })
+                print(f"  📄 抽出（代替形式）: {filepath} ({language})")
+        
+        return files
+
+    def _extract_dependencies(self, text: str) -> List[str]:
+        """依存関係を抽出"""
+        import re
+        
+        dependencies = []
+        
+        # ## 依存関係 セクションを探す
+        dep_pattern = r'##\s*依存関係\s*```[^\n]*\n(.*?)```'
+        match = re.search(dep_pattern, text, re.DOTALL)
+        
+        if match:
+            dep_text = match.group(1).strip()
+            # 各行を依存関係として追加
+            for line in dep_text.split('\n'):
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    dependencies.append(line)
+        
+        return dependencies
+
+    def _extract_instructions(self, text: str) -> str:
+        """セットアップ手順と実行方法を抽出"""
+        import re
+        
+        instructions = []
+        
+        # ## セットアップ手順 セクションを探す
+        setup_pattern = r'##\s*セットアップ手順\s*\n(.*?)(?=##|$)'
+        setup_match = re.search(setup_pattern, text, re.DOTALL)
+        
+        if setup_match:
+            instructions.append("# セットアップ手順")
+            instructions.append(setup_match.group(1).strip())
+        
+        # ## 実行方法 セクションを探す
+        run_pattern = r'##\s*実行方法\s*\n(.*?)(?=##|$)'
+        run_match = re.search(run_pattern, text, re.DOTALL)
+        
+        if run_match:
+            instructions.append("\n# 実行方法")
+            instructions.append(run_match.group(1).strip())
+        
+        return "\n".join(instructions) if instructions else "セットアップ手順は生成されたコードに含まれています。"
+
+    def _detect_language_from_path(self, filepath: str) -> str:
+        """ファイルパスから言語を推測"""
+        ext_map = {
+            '.py': 'python',
+            '.js': 'javascript',
+            '.ts': 'typescript',
+            '.jsx': 'javascript',
+            '.tsx': 'typescript',
+            '.java': 'java',
+            '.cpp': 'cpp',
+            '.c': 'c',
+            '.go': 'go',
+            '.rs': 'rust',
+            '.rb': 'ruby',
+            '.php': 'php',
+            '.swift': 'swift',
+            '.kt': 'kotlin',
+            '.scala': 'scala',
+            '.sh': 'bash',
+            '.html': 'html',
+            '.css': 'css',
+            '.json': 'json',
+            '.yaml': 'yaml',
+            '.yml': 'yaml',
+            '.xml': 'xml',
+            '.md': 'markdown',
+        }
+        
+        import os
+        _, ext = os.path.splitext(filepath)
+        return ext_map.get(ext.lower(), 'text')
+    
+    def _extract_project_summary(self, text: str) -> Dict[str, Any]:
+        """プロジェクト概要を抽出"""
+        import re
+        
+        summary = {
+            "name": "生成されたプロジェクト",
+            "description": "",
+            "features": [],
+            "tech_stack": {
+                "language": "",
+                "framework": "",
+                "libraries": []
+            },
+            "mermaid_diagram": ""
+        }
+        
+        # プロジェクト名
+        name_pattern = r'プロジェクト名:\s*(?:【)?([^】\n]+)(?:】)?'
+        name_match = re.search(name_pattern, text)
+        if name_match:
+            summary["name"] = name_match.group(1).strip()
+        
+        # 説明
+        desc_pattern = r'説明:\s*(?:【)?([^】\n]+)(?:】)?'
+        desc_match = re.search(desc_pattern, text)
+        if desc_match:
+            summary["description"] = desc_match.group(1).strip()
+        
+        # 主な機能
+        features_pattern = r'主な機能:?\s*\n((?:-\s+[^\n]+\n?)+)'
+        features_match = re.search(features_pattern, text)
+        if features_match:
+            for line in features_match.group(1).split('\n'):
+                if line.strip().startswith('-'):
+                    feature = line.strip()[1:].strip()
+                    if feature:
+                        summary["features"].append(feature)
+        
+        # 技術スタック
+        lang_pattern = r'-\s*言語:\s*(?:【)?([^】\n]+)(?:】)?'
+        lang_match = re.search(lang_pattern, text)
+        if lang_match:
+            summary["tech_stack"]["language"] = lang_match.group(1).strip()
+        
+        fw_pattern = r'-\s*フレームワーク:\s*(?:【)?([^】\n]+)(?:】)?'
+        fw_match = re.search(fw_pattern, text)
+        if fw_match:
+            summary["tech_stack"]["framework"] = fw_match.group(1).strip()
+        
+        lib_pattern = r'-\s*主要ライブラリ:\s*(?:【)?([^】\n]+)(?:】)?'
+        lib_match = re.search(lib_pattern, text)
+        if lib_match:
+            libs = lib_match.group(1).strip()
+            summary["tech_stack"]["libraries"] = [l.strip() for l in libs.split(',') if l.strip()]
+        
+        # Mermaid図
+        mermaid_pattern = r'```mermaid\s*\n(.*?)```'
+        mermaid_match = re.search(mermaid_pattern, text, re.DOTALL)
+        if mermaid_match:
+            summary["mermaid_diagram"] = mermaid_match.group(1).strip()
+        
+        return summary
 
     def _analyze_image_with_provider(
         self,
@@ -655,6 +1125,23 @@ def fastapi_app():
 
             gpu = RealworldAgentGPU()
             result = gpu.generate_specification.remote(context)
+
+            return JSONResponse(content=result)
+
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)},
+            )
+
+    @web_app.post("/api/generate-code")
+    async def generate_code(request: Request):
+        """コード生成API"""
+        try:
+            body = await request.json()
+
+            gpu = RealworldAgentGPU()
+            result = gpu.generate_code.remote(body)
 
             return JSONResponse(content=result)
 

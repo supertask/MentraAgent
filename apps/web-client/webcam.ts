@@ -36,6 +36,9 @@ const codeFramework = document.getElementById('code-framework') as HTMLSelectEle
 const createPR = document.getElementById('create-pr') as HTMLInputElement;
 const generateCodeSubmit = document.getElementById('generate-code-submit') as HTMLButtonElement;
 const cancelCodeGen = document.getElementById('cancel-code-gen') as HTMLButtonElement;
+const codeResult = document.getElementById('code-result') as HTMLDivElement;
+const codeFiles = document.getElementById('code-files') as HTMLDivElement;
+const codeInstructions = document.getElementById('code-instructions') as HTMLDivElement;
 
 // グローバル状態
 let mediaStream: MediaStream | null = null;
@@ -326,11 +329,6 @@ function handleServerMessage(data: string) {
 
 // 文字起こしを表示
 function displayTranscription(text: string, isFinal: boolean) {
-  // 空のテキストは表示しない
-  if (!text || text.trim() === '') {
-    return;
-  }
-  
   if (transcriptionOutput.querySelector('.placeholder')) {
     transcriptionOutput.innerHTML = '';
   }
@@ -452,6 +450,7 @@ async function generateSpecification() {
 // コード生成モーダルを開く
 function openCodeModal() {
   codeModal.classList.remove('hidden');
+  codeResult.classList.add('hidden');
   codePrompt.value = '';
   codePrompt.focus();
 }
@@ -465,20 +464,19 @@ function closeCodeModal() {
 async function generateCode() {
   const prompt = codePrompt.value.trim();
   
-  // プロンプトが空でも文字起こしから推測するのでOK
-  addLog('コードを生成しています...', 'info');
-  
   if (!prompt) {
-    addLog('文字起こしから要求を推測します...', 'info');
+    addLog('プロンプトを入力してください', 'warning');
+    return;
   }
   
+  addLog('コードを生成しています...', 'info');
   generateCodeSubmit.disabled = true;
   generateCodeSubmit.textContent = '生成中...';
   
   try {
     const requestBody: any = {
       sessionId,
-      prompt: prompt || '', // 空文字列でもOK
+      prompt,
     };
     
     if (codeLanguage.value) {
@@ -492,7 +490,7 @@ async function generateCode() {
     if (createPR.checked) {
       requestBody.createPR = {
         enabled: true,
-        title: `自動生成: ${prompt.substring(0, 50) || '音声から'}`,
+        title: `自動生成: ${prompt.substring(0, 50)}`,
         baseBranch: 'main',
       };
     }
@@ -505,33 +503,80 @@ async function generateCode() {
     
     if (response.ok) {
       const data = await response.json();
-      addLog(`✅ ${data.message}`, 'success');
-      addLog(`📂 保存先: ${data.storageDir}`, 'info');
+      addLog(`コードを生成しました: ${data.files.length}ファイル`, 'success');
+      
+      // 結果を表示
+      displayCodeResult(data);
       
       if (data.prUrl) {
-        addLog(`🔗 GitHub PR: ${data.prUrl}`, 'success');
+        addLog(`GitHub PR: ${data.prUrl}`, 'success');
       }
-      
-      // モーダルを閉じる
-      closeCodeModal();
-      
-      // 生成履歴ページへのリンクを表示
-      setTimeout(() => {
-        if (confirm('コードが生成されました！\n生成履歴ページで確認しますか？')) {
-          window.open('/generated.html', '_blank');
-        }
-      }, 500);
     } else {
-      const errorData = await response.json();
-      addLog(`❌ コード生成に失敗しました: ${errorData.error}`, 'error');
+      const error = await response.text();
+      addLog(`コード生成に失敗しました: ${error}`, 'error');
     }
   } catch (error) {
-    addLog(`❌ コード生成エラー: ${error}`, 'error');
+    addLog(`コード生成エラー: ${error}`, 'error');
     console.error(error);
   } finally {
     generateCodeSubmit.disabled = false;
     generateCodeSubmit.textContent = '🚀 生成する';
   }
+}
+
+// コード生成結果を表示
+function displayCodeResult(data: any) {
+  codeResult.classList.remove('hidden');
+  
+  // ファイル表示
+  codeFiles.innerHTML = '';
+  data.files.forEach((file: any) => {
+    const fileDiv = document.createElement('div');
+    fileDiv.className = 'code-file';
+    fileDiv.innerHTML = `
+      <div class="code-file-header">
+        <strong>${file.path}</strong>
+        <span class="code-language">${file.language}</span>
+      </div>
+      <pre><code>${escapeHtml(file.content)}</code></pre>
+    `;
+    codeFiles.appendChild(fileDiv);
+  });
+  
+  // セットアップ手順
+  if (data.instructions) {
+    codeInstructions.innerHTML = `
+      <h4>セットアップ手順</h4>
+      <pre>${escapeHtml(data.instructions)}</pre>
+    `;
+  }
+  
+  // 依存関係
+  if (data.dependencies && data.dependencies.length > 0) {
+    const depsDiv = document.createElement('div');
+    depsDiv.innerHTML = `
+      <h4>依存関係</h4>
+      <pre>${data.dependencies.join('\n')}</pre>
+    `;
+    codeInstructions.appendChild(depsDiv);
+  }
+  
+  // GitHub PR
+  if (data.prUrl) {
+    const prDiv = document.createElement('div');
+    prDiv.innerHTML = `
+      <h4>GitHub Pull Request</h4>
+      <p><a href="${data.prUrl}" target="_blank">${data.prUrl}</a></p>
+    `;
+    codeInstructions.appendChild(prDiv);
+  }
+}
+
+// HTMLエスケープ
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // セッション停止

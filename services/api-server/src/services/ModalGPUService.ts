@@ -76,6 +76,77 @@ export class ModalGPUService {
   }
 
   /**
+   * コード生成
+   */
+  async generateCode(request: {
+    prompt: string;
+    context: {
+      transcriptions: Array<{ text: string; timestamp: Date; speaker?: string }>;
+      specification?: string;
+    };
+    language?: string;
+    framework?: string;
+  }): Promise<{
+    files: Array<{ path: string; content: string; language: string }>;
+    dependencies: string[];
+    instructions: string;
+    model: string;
+  }> {
+    try {
+      if (!this.apiUrl) {
+        throw new Error('Modal API URLが設定されていません');
+      }
+
+      logger.info('Modal GPUサーバーにコード生成をリクエスト', {
+        prompt: request.prompt.substring(0, 100),
+        language: request.language,
+        framework: request.framework,
+      });
+
+      // Modal GPUサーバーのgenerate_codeエンドポイントを呼び出し
+      // コールドスタート対策として10分のタイムアウトを設定
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10分
+
+      try {
+        const response = await fetch(`${this.apiUrl}/api/generate-code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Modal API Error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+
+        logger.info('コード生成完了', {
+          model: result.model,
+          fileCount: result.files.length,
+        });
+
+        return result;
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Modal GPU server timeout (10 minutes). The server may be cold starting.');
+        }
+        throw error;
+      }
+    } catch (error) {
+      logger.error('Modalコード生成エラー', error as Error);
+      throw error;
+    }
+  }
+
+  /**
    * 画像分析
    */
   async analyzeImage(imageBuffer: Buffer): Promise<{

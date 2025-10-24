@@ -170,6 +170,16 @@ export class RealWorldAgent extends AppServer {
     // APIサーバーに送信
     await this.apiClient.sendTranscription(sessionId, data);
 
+    // コード生成の意図を検出
+    const codeIntent = this.importanceDetector.detectCodeGenerationIntent(data.text);
+    if (codeIntent.shouldGenerate) {
+      session.logger.info(
+        `💻 コード生成リクエスト検出 (信頼度: ${codeIntent.confidence.toFixed(2)})`
+      );
+      await this.handleCodeGeneration(session, sessionId, codeIntent.extractedPrompt);
+      return; // コード生成を実行した場合は重要箇所検出をスキップ
+    }
+
     // 重要箇所検出
     const importantMoment = this.importanceDetector.detectImportantMoments(
       data.text,
@@ -266,6 +276,110 @@ export class RealWorldAgent extends AppServer {
       session.logger.error('📄 仕様書生成エラー', error as Error);
       await session.audio.speak('仕様書の生成に失敗しました');
     }
+  }
+
+  /**
+   * コード生成
+   */
+  private async handleCodeGeneration(
+    session: AppSession,
+    sessionId: string,
+    prompt: string
+  ): Promise<void> {
+    try {
+      session.logger.info('💻 コード生成を開始');
+      await session.audio.speak('コードを生成しています');
+
+      // 言語・フレームワークの抽出（簡易版）
+      const language = this.extractLanguage(prompt);
+      const framework = this.extractFramework(prompt);
+
+      session.logger.info('コード生成リクエスト', {
+        prompt: prompt.substring(0, 100),
+        language,
+        framework,
+      });
+
+      // APIサーバーに依頼
+      const result = await this.apiClient.generateCode({
+        sessionId,
+        prompt,
+        language,
+        framework,
+      });
+
+      session.logger.info(`✅ コード生成完了: ${result.files.length}ファイル`);
+
+      // 生成されたファイルをログに出力
+      for (const file of result.files) {
+        session.logger.info(`  📄 ${file.path} (${file.language})`);
+      }
+
+      await session.audio.speak(
+        `コードを生成しました。${result.files.length}個のファイルを作成しました`
+      );
+    } catch (error) {
+      session.logger.error('💻 コード生成エラー', error as Error);
+      await session.audio.speak('コードの生成に失敗しました');
+    }
+  }
+
+  /**
+   * プロンプトから言語を抽出
+   */
+  private extractLanguage(text: string): string | undefined {
+    const normalizedText = text.toLowerCase();
+    const languageMap: { [key: string]: string } = {
+      python: 'python',
+      javascript: 'javascript',
+      typescript: 'typescript',
+      java: 'java',
+      go: 'go',
+      rust: 'rust',
+      ruby: 'ruby',
+      php: 'php',
+      csharp: 'csharp',
+      'c#': 'csharp',
+      cpp: 'cpp',
+      'c\\+\\+': 'cpp',
+    };
+
+    for (const [pattern, language] of Object.entries(languageMap)) {
+      if (new RegExp(pattern, 'i').test(normalizedText)) {
+        return language;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * プロンプトからフレームワークを抽出
+   */
+  private extractFramework(text: string): string | undefined {
+    const normalizedText = text.toLowerCase();
+    const frameworkMap: { [key: string]: string } = {
+      react: 'react',
+      vue: 'vue',
+      angular: 'angular',
+      'next\\.?js': 'nextjs',
+      'node\\.?js': 'nodejs',
+      express: 'express',
+      fastapi: 'fastapi',
+      django: 'django',
+      flask: 'flask',
+      rails: 'rails',
+      laravel: 'laravel',
+      spring: 'spring',
+    };
+
+    for (const [pattern, framework] of Object.entries(frameworkMap)) {
+      if (new RegExp(pattern, 'i').test(normalizedText)) {
+        return framework;
+      }
+    }
+
+    return undefined;
   }
 
   /**
