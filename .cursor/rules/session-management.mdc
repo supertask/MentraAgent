@@ -1,0 +1,44 @@
+# セッション管理
+
+**構造**: `Session` (親) → `Transcription`, `Photo`, `Specification` (子)
+
+## よくあるエラー
+
+**`Foreign key constraint violated: Session_id_fkey`**
+
+**原因**: セッションが存在しないのにデータを保存しようとした
+
+## このプロジェクトのルール
+
+1. **フロントエンド: 最初に必ずセッションを作成**
+```typescript
+// apps/web-client/app.ts
+async function startSession() {
+  await createSession();       // ← 先にセッション作成
+  await connectToServer();      
+  await startAudioProcessing();
+}
+```
+
+2. **すべてのWebSocketメッセージに`sessionId`を含める**
+```typescript
+sendToServer({
+  type: 'transcription',
+  sessionId: sessionId,  // ← 必須
+  data: { ... }
+});
+```
+
+3. **バックエンド: セッション存在確認 → なければ作成**
+```typescript
+// services/api-server/src/routes/device.ts
+let session = await sessionRepo.findById(sessionId);
+if (!session) {
+  const newSession = await sessionRepo.create({...});
+  sessionId = newSession.sessionId;  // ← newSession.id ではない
+}
+```
+
+4. **Prismaスキーマで`onDelete: Cascade`設定済み**
+   - セッション削除時に関連データも自動削除
+

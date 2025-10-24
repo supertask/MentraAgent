@@ -1,0 +1,36 @@
+# Prismaスキーマ変更
+
+**ファイル**: `services/api-server/prisma/schema.prisma`
+
+## 必須手順
+
+スキーマ変更後は必ず実行：
+```bash
+bun run db:migrate        # マイグレーション
+bunx prisma generate      # 型定義の再生成
+```
+
+## このプロジェクトのルール
+
+1. **外部キー制約は必ず`onDelete: Cascade`**
+```prisma
+session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+```
+
+2. **新しいモデルを追加したら`packages/shared/src/types.ts`も更新**
+   - フロントエンドとバックエンドで同じ型を使う
+
+3. **新しいモデルには対応するRepositoryを作成**
+   - 例: `SpecificationRepository.ts`
+
+## よくあるエラー
+
+**`Unknown field 'title' for type 'Specification'`**
+→ `bun run db:migrate`忘れ
+
+**`Property 'title' does not exist`（TypeScript）**
+→ `bunx prisma generate`忘れ
+
+**`P1002: database timed out`**
+→ `docker restart realworld-agent-db`
+

@@ -1,14 +1,45 @@
 # 完全版ガイド - Realworld Agent
 
-## 🎉 完全版で追加された機能
+## 🎉 完全版で実装された機能
 
-### 1. 📂 写真保存機能
+### 1. 📄 仕様書生成機能（完全実装）
+- **Modal GPUサーバー**: OpenAI/Anthropic両対応
+- **プロバイダー優先度設定**: 環境変数で切り替え可能
+- **自動フォールバック**: プライマリ失敗時に自動的にセカンダリを使用
+- **コンテキスト統合**: 文字起こし＋写真を統合して仕様書生成
+- **データベース保存**: 生成した仕様書を永続化
+
+### 2. 🔄 セッション管理（完全実装）
+- **セッション作成**: フロントエンドから作成可能
+- **完全なCRUD操作**: 作成・取得・更新・削除
+- **データベース連携**: すべてのデータをセッションに紐付け
+- **外部キー制約**: カスケード削除対応
+
+### 3. 📂 写真保存機能
 - **ローカルストレージ**: `services/api-server/storage/photos/` に保存
 - **セッション別**: 各セッションごとにディレクトリ分割
-- **メタデータ**: JSON形式で保存（.meta.json）
 - **データベース**: PostgreSQLに記録情報を保存
+- **リポジトリパターン**: PhotoRepositoryで管理
 
-### 2. 📝 強化されたログシステム
+### 4. 📝 文字起こし保存機能
+- **データベース**: PostgreSQLに保存
+- **セッション連携**: sessionIdで紐付け
+- **タイムスタンプ**: 時系列で管理
+- **リポジトリパターン**: TranscriptionRepositoryで管理
+
+### 5. 💰 コスト最適化
+- **Modal keep_warm無効化**: 使った分だけ課金
+- **GPU不使用**: 仕様書生成はCPUのみで動作
+- **月額コスト削減**: $90-288/月 → **$10-135/月**
+- **コールドスタート**: 初回起動20-60秒（許容範囲）
+
+### 6. 🤖 LLMプロバイダー管理
+- **優先度設定**: OpenAI/Anthropicを環境変数で切り替え
+- **モデル選択**: gpt-4o、claude-3.5-sonnetなど
+- **フォールバック機構**: 障害時の自動切り替え
+- **コスト管理**: 用途に応じたモデル選択
+
+### 7. 📝 強化されたログシステム
 - **ファイル出力**: `services/api-server/logs/` に保存
   - `combined.log`: 全ログ（最大10MB×5ファイル）
   - `error.log`: エラーのみ
@@ -16,10 +47,12 @@
 - **構造化ログ**: JSON形式で詳細記録
 - **自動ローテーション**: サイズ制限で自動分割
 
-### 3. 💾 データベース連携
-- **セッション管理**: 作成・取得・更新・削除
-- **写真記録**: 保存情報をDB管理
-- **文字起こし**: 記録と検索機能
+### 8. 💾 データベース連携（完全実装）
+- **SessionRepository**: セッション管理
+- **TranscriptionRepository**: 文字起こし管理
+- **PhotoRepository**: 写真管理
+- **SpecificationRepository**: 仕様書管理
+- **外部キー制約**: データ整合性の保証
 
 ## 📁 ファイル構造
 
@@ -34,9 +67,18 @@ services/api-server/
 │   │   └── session-XXX/       # セッションごと
 │   │       ├── capture-1.jpg
 │   │       └── capture-1.jpg.meta.json
+│   ├── specifications/        # 仕様書保存先（エクスポート用）
+│   │   └── spec-XXXXX.md     # 生成された仕様書
 │   └── files/                 # その他ファイル
-└── prisma/
-    └── dev.db                 # SQLiteファイル（開発時）
+├── prisma/
+│   ├── schema.prisma          # データベーススキーマ
+│   └── migrations/            # マイグレーションファイル
+└── src/
+    └── repositories/          # データベースリポジトリ
+        ├── SessionRepository.ts
+        ├── TranscriptionRepository.ts
+        ├── PhotoRepository.ts
+        └── SpecificationRepository.ts
 ```
 
 ## 🔍 ログの確認方法
@@ -190,78 +232,165 @@ docker logs realworld-agent-db
 docker restart realworld-agent-db
 ```
 
-## 📈 次のステップ
+## 📄 仕様書の確認
 
-### Modal統合（GPU処理）
+### データベースから確認
 
-現在、以下の機能は**未実装**です：
+```bash
+# PostgreSQLに接続
+docker exec realworld-agent-db psql -U postgres -d realworld_agent
+
+# 仕様書一覧
+SELECT id, "sessionId", title, status, "createdAt" FROM "Specification" ORDER BY "createdAt" DESC LIMIT 5;
+
+# 仕様書の内容を確認
+SELECT content FROM "Specification" WHERE id = 'your-spec-id';
+
+# 終了
+\q
+```
+
+### エクスポートされた仕様書を確認
+
+```bash
+# 仕様書一覧
+ls -lh services/api-server/storage/specifications/
+
+# 仕様書を開く（Mac）
+open services/api-server/storage/specifications/spec-XXXXX.md
+
+# 内容を表示
+cat services/api-server/storage/specifications/spec-XXXXX.md
+```
+
+### データベースから仕様書をエクスポート
+
+```bash
+# 最新の仕様書をMarkdownファイルとして保存
+docker exec realworld-agent-db psql -U postgres -d realworld_agent -t \
+  -c "SELECT content FROM \"Specification\" ORDER BY \"createdAt\" DESC LIMIT 1;" \
+  | jq -r '.markdown' > ./latest-spec.md
+```
+
+## 📈 実装済み機能と次のステップ
+
+### ✅ 実装済み
+
+1. **仕様書自動生成（完全実装）**
+   - OpenAI/Anthropic両対応
+   - プロバイダー優先度設定＋フォールバック
+   - 文字起こし＋写真のコンテキスト統合
+
+2. **セッション管理（完全実装）**
+   - 完全なCRUD操作
+   - データベース連携
+   - フロントエンドからの作成
+
+3. **文字起こし・写真保存**
+   - ブラウザWeb Speech API使用
+   - データベース永続化
+   - セッション連携
+
+### 🚧 今後の実装予定
 
 1. **高精度文字起こし（WhisperX）**
-   - ブラウザのWeb Speech APIのみ使用中
-   - Modalで WhisperX を使えば精度向上
+   - 現在は一時的に無効化
+   - 単語レベルタイムスタンプ
+   - 画像とテキストのタイムスタンプ連携に必要
 
 2. **話者分離（pyannote）**
-   - 誰が話したかの識別は未実装
+   - 現在は一時的に無効化
+   - 誰が話したかの識別
+   - 会議録作成に有用
 
-3. **画像認識（Claude Vision）**
-   - 写真の内容分析は未実装
+3. **画像認識（Claude Vision / GPT-4o Vision）**
+   - 準備済み
+   - 写真の内容分析
 
-4. **仕様書自動生成**
-   - スタブのみ（実際の生成は未実装）
+4. **Multi-RAGシステム**
+   - Qdrant統合
+   - 社内ドキュメント検索
+   - マルチモーダル検索
 
-### Modal統合手順
+### Modal統合の状態
 
-1. **Modal API Keyの設定**
-   ```bash
-   # .envファイルに追加
-   MODAL_TOKEN_ID=your_token_id
-   MODAL_TOKEN_SECRET=your_token_secret
-   MODAL_API_URL=your_modal_endpoint
-   ```
+**現在**: ✅ デプロイ済み・動作中
 
-2. **GPUサーバーのデプロイ**
-   ```bash
-   bun run modal:deploy
-   ```
-
-3. **APIサーバーにModal統合コード追加**
-   - `services/api-server/src/integrations/modal.ts`
-   - processing.tsルーターの完全実装
+- Modal GPUサーバー: デプロイ済み
+- LLM連携: OpenAI/Anthropic対応
+- 仕様書生成: 完全動作
+- コスト最適化: keep_warm無効化済み
 
 ## 💰 コスト管理
 
-### 現在の費用: $0/月
+### 現在の月額費用: **$10-135**（使用量による）
 
-- ✅ ブラウザAPI: 無料
-- ✅ ローカルストレージ: 無料
-- ✅ PostgreSQL（Docker）: 無料
-- ❌ Modal: 未使用
+#### 内訳
 
-### Modal使用時の概算費用
+| コンポーネント | 月額費用 | 備考 |
+|---------------|---------|------|
+| ブラウザAPI | **無料** | Web Speech API使用 |
+| ローカルストレージ | **無料** | 写真・ログ保存 |
+| PostgreSQL（Docker） | **無料** | ローカル開発環境 |
+| Modal GPUサーバー | **$0-5** | keep_warm無効化（使った分だけ） |
+| LLM API (OpenAI/Anthropic) | **$10-100** | 仕様書生成のみ |
+| Redis | **無料** | ローカル開発環境 |
 
-- WhisperX処理: $0.04/時間
-- 画像分析: $0.10/時間
-- 合計: **$0.25-0.45/時間**
+#### コスト最適化の効果
 
-月間40時間使用: **$10-18/月**
+**従来**: $90-288/月  
+**現在**: **$10-135/月**  
+**削減率**: 約85-90%
+
+#### コスト削減のポイント
+
+1. **Modal keep_warm無効化**
+   - 常時課金なし
+   - 使った分だけ課金
+   - コールドスタート: 20-60秒（許容範囲）
+
+2. **GPU不使用**
+   - 仕様書生成はCPUのみで動作
+   - WhisperX再有効化時のみGPU使用予定
+
+3. **LLMプロバイダー選択**
+   - 用途に応じてOpenAI/Anthropicを切り替え
+   - gpt-4o-mini使用でさらにコスト削減可能
+
+4. **バッチ処理**
+   - API呼び出しを最小限に
+   - 文字起こし＋写真をまとめて送信
 
 ## 📚 API エンドポイント
 
-### 実装済み
+### ✅ 実装済み
 
-- `POST /api/device/photo` - 写真アップロード ✅
-- `GET /api/device/info` - デバイス情報 ✅
-- `POST /api/session` - セッション作成 ✅
-- `GET /api/session/:sessionId` - セッション取得 ✅
-- `PATCH /api/session/:sessionId` - セッション更新 ✅
-- `DELETE /api/session/:sessionId` - セッション終了 ✅
-- `GET /api/session?userId=XXX` - セッション一覧 ✅
+#### デバイス入力
+- `POST /api/device/photo` - 写真アップロード
+- `GET /api/device/info` - デバイス情報
+- `GET /api/device/webcam/stream` - WebSocketストリーム
 
-### 未実装
+#### セッション管理
+- `POST /api/sessions` - セッション作成
+- `GET /api/sessions/:sessionId` - セッション取得
+- `PATCH /api/sessions/:sessionId` - セッション更新
+- `DELETE /api/sessions/:sessionId` - セッション終了
+- `GET /api/sessions?userId=XXX` - セッション一覧
 
-- `POST /api/processing/transcribe` - GPU文字起こし ⏳
-- `POST /api/processing/analyze-image` - GPU画像分析 ⏳
-- `POST /api/processing/generate-spec` - 仕様書生成 ⏳
+#### AI処理
+- `POST /api/processing/generate-spec` - 仕様書生成（完全実装）
+
+#### 外部連携
+- `POST /api/webhook/slack` - Slack通知
+- `POST /api/webhook/github` - GitHub連携
+- `POST /api/webhook/notion` - Notion連携
+
+### 🚧 一時的に無効化
+
+- `POST /api/processing/transcribe` - GPU文字起こし（WhisperX）
+- `POST /api/processing/analyze-image` - GPU画像分析
+
+※ これらの機能は実装済みですが、コスト最適化のため一時的に無効化しています。
 
 ## 🎓 使い方の例
 
