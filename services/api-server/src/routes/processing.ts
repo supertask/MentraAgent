@@ -443,12 +443,48 @@ _このPRは Realworld Agent によって自動生成されました_
       // ZIPファイル名
       const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf-8'));
       const projectName = metadata.summary?.name || 'generated-project';
-      const sanitizedName = projectName.replace(/[^a-zA-Z0-9-_]/g, '_');
-      const zipFilename = `${sanitizedName}-${generationId}.zip`;
+      logger.info('[ZIP] メタデータ読み込み', { 
+        generationId,
+        projectName,
+        hasSummary: !!metadata.summary,
+        summaryName: metadata.summary?.name,
+        timestamp: metadata.timestamp
+      });
+      
+      // 日時フォーマット (YYYYMMDD_HHMMSS)
+      const date = new Date(metadata.timestamp);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      const dateStr = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+      
+      // 生成ID（gen-を除く）
+      const shortId = generationId.replace('gen-', '');
+      
+      // ファイル名（日本語対応）
+      const zipFilename = `${projectName}_${shortId}_${dateStr}.zip`;
+      // ASCIIセーフなファイル名（フォールバック用）
+      const asciiFilename = `project_${shortId}_${dateStr}.zip`;
+      const encodedFilename = encodeURIComponent(zipFilename).replace(/'/g, '%27');
+      
+      logger.info('[ZIP] ファイル名生成', {
+        projectName,
+        shortId,
+        dateStr,
+        zipFilename,
+        asciiFilename,
+        encodedFilename
+      });
       
       // ZIPストリームの作成
       reply.header('Content-Type', 'application/zip');
-      reply.header('Content-Disposition', `attachment; filename="${zipFilename}"`);
+      // RFC 5987形式で日本語ファイル名をサポート
+      const contentDisposition = `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`;
+      reply.header('Content-Disposition', contentDisposition);
+      logger.info('[ZIP] Content-Disposition設定', { contentDisposition });
       
       const archive = archiver.default('zip', {
         zlib: { level: 9 }

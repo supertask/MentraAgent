@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>生成履歴 - Realworld Agent</title>
   <link rel="stylesheet" href="/styles.css">
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.0.0/marked.min.js"></script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ startOnLoad: false, theme: 'dark' });
@@ -361,6 +363,8 @@
     /* README風スタイル */
     .readme-container {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
     }
     
     .readme-title {
@@ -477,6 +481,142 @@
       padding: 14px 28px !important;
       font-size: 1.1rem !important;
     }
+    
+    /* GitHub風Markdownスタイル */
+    .markdown-body {
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    
+    .markdown-body > *:first-child {
+      margin-top: 0 !important;
+    }
+    
+    .markdown-body > *:last-child {
+      margin-bottom: 0 !important;
+    }
+    
+    .markdown-body h1 {
+      font-size: 2em;
+      font-weight: 700;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid var(--border-color);
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    
+    .markdown-body h2 {
+      font-size: 1.5em;
+      font-weight: 700;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid var(--border-color);
+      margin-top: 24px;
+      margin-bottom: 16px;
+    }
+    
+    .markdown-body h3 {
+      font-size: 1.25em;
+      font-weight: 700;
+      margin-top: 24px;
+      margin-bottom: 16px;
+    }
+    
+    .markdown-body p {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+    }
+    
+    .markdown-body ul, .markdown-body ol {
+      padding-left: 2em;
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+    }
+    
+    .markdown-body li {
+      margin-bottom: 8px;
+    }
+    
+    .markdown-body code {
+      background: var(--bg-color);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9em;
+      color: var(--accent-color);
+    }
+    
+    .markdown-body pre {
+      background: var(--bg-color);
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .markdown-body pre code {
+      background: transparent;
+      padding: 0;
+      color: var(--text-primary);
+    }
+    
+    .markdown-body blockquote {
+      border-left: 4px solid var(--primary-color);
+      padding-left: 16px;
+      margin: 16px 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+    
+    .markdown-body table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    
+    .markdown-body th, .markdown-body td {
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    
+    .markdown-body th {
+      background: var(--surface-color);
+      font-weight: 700;
+    }
+    
+    .markdown-body a {
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+    
+    .markdown-body a:hover {
+      text-decoration: underline;
+    }
+    
+    .markdown-body hr {
+      border: 0;
+      border-top: 1px solid var(--border-color);
+      margin: 24px 0;
+    }
+    
+    .markdown-body strong {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .markdown-body em {
+      font-style: italic;
+    }
+    
+    /* Mermaid図のスタイル */
+    .markdown-body .mermaid {
+      background: var(--bg-color);
+      padding: 20px;
+      border-radius: 8px;
+      margin: 16px 0;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -506,7 +646,7 @@
     <div id="detail-modal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>💻 生成されたコード</h2>
+          <h2></h2>
           <button id="close-modal" class="close-button">&times;</button>
         </div>
         <div id="modal-body" class="modal-body">
@@ -671,14 +811,24 @@
     
     window.viewDetails = async function(generationId) {
       try {
+        console.log('[DEBUG] viewDetails開始:', generationId);
         const response = await fetch(`${API_BASE_URL}/api/processing/generated-code/${generationId}`);
-        if (!response.ok) throw new Error('Failed to load details');
+        console.log('[DEBUG] APIレスポンス:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to load details: ${response.status}`);
+        }
         
         const data = await response.json();
+        console.log('[DEBUG] 取得したデータ:', data);
+        console.log('[DEBUG] summary:', data.summary);
+        console.log('[DEBUG] files:', data.files);
+        
         showDetailModal(data);
       } catch (error) {
-        console.error('Error loading details:', error);
-        alert('詳細の読み込みに失敗しました');
+        console.error('[ERROR] viewDetails失敗:', error);
+        console.error('[ERROR] Stack:', error.stack);
+        alert(`詳細の読み込みに失敗しました\n\nエラー: ${error.message}`);
       }
     };
     
@@ -734,7 +884,53 @@
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `${projectName.replace(/[^a-zA-Z0-9-_]/g, '_')}-${generationId}.zip`;
+        
+        // Content-Dispositionヘッダーからファイル名を取得
+        const contentDisposition = response.headers.get('Content-Disposition');
+        console.log('====================================');
+        console.log('[DEBUG] Content-Disposition (生):', contentDisposition);
+        console.log('[DEBUG] generationId:', generationId);
+        let filename = `project_${generationId}.zip`;
+        
+        if (contentDisposition) {
+          // filename*=UTF-8''...の形式から抽出（行末またはセミコロンまで）
+          console.log('[DEBUG] filename*パターンをテスト...');
+          const filenameMatch = contentDisposition.match(/filename\*=UTF-8''([^;\r\n]+)/);
+          console.log('[DEBUG] filename*マッチ結果:', filenameMatch);
+          
+          if (filenameMatch) {
+            const encodedFilename = filenameMatch[1].trim();
+            console.log('[DEBUG] エンコードされたファイル名 (抽出):', encodedFilename);
+            console.log('[DEBUG] エンコードされたファイル名 (文字数):', encodedFilename.length);
+            
+            try {
+              filename = decodeURIComponent(encodedFilename);
+              console.log('[DEBUG] デコード成功:', filename);
+            } catch (e) {
+              console.error('[ERROR] デコード失敗:', e);
+              filename = encodedFilename; // フォールバック
+            }
+          } else {
+            console.log('[DEBUG] filename*が見つからないため、通常のfilename="..."を試します');
+            // 通常のfilename="..."の形式から抽出
+            const simpleMatch = contentDisposition.match(/filename="([^"]+)"/);
+            console.log('[DEBUG] 通常のfilenameマッチ結果:', simpleMatch);
+            if (simpleMatch) {
+              filename = simpleMatch[1];
+              console.log('[DEBUG] 通常のファイル名:', filename);
+            } else {
+              console.log('[WARN] filenameも見つかりませんでした');
+            }
+          }
+        } else {
+          console.log('[WARN] Content-Dispositionヘッダーが存在しません');
+        }
+        
+        console.log('[DEBUG] 最終的なファイル名:', filename);
+        console.log('[DEBUG] a.download に設定する値:', filename);
+        console.log('====================================');
+        
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -757,148 +953,128 @@
     };
     
     function showDetailModal(data) {
-      const modal = document.getElementById('detail-modal');
-      const body = document.getElementById('modal-body');
-      
-      const summary = data.summary || {};
-      const projectName = summary.name || 'Generated Project';
-      const description = summary.description || data.prompt || '';
-      const features = summary.features || [];
-      const techStack = summary.tech_stack || {};
-      const mermaidDiagram = summary.mermaid_diagram || '';
-      
-      // README.mdファイルを探す
-      const readmeFile = data.files.find(f => f.path.toLowerCase().includes('readme.md'));
-      const hasReadme = !!readmeFile;
-      
-      body.innerHTML = `
-        <div class="readme-container">
-          <h1 class="readme-title">${projectName}</h1>
-          
-          ${hasReadme ? `
-            <div class="readme-section" style="background: var(--surface-color); padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-              <h2>💻 生成されたコード - README.md</h2>
-              <div class="readme-preview">
-                <pre style="white-space: pre-wrap; font-family: inherit; background: transparent; padding: 0; margin: 0;">${escapeHtml(readmeFile.content)}</pre>
-              </div>
-            </div>
-          ` : ''}
-          
-          ${!hasReadme && description ? `
-            <div class="readme-section">
-              <h2>📖 概要</h2>
-              <p>${description}</p>
-            </div>
-          ` : ''}
-          
-          ${features.length > 0 ? `
-            <div class="readme-section">
-              <h2>✨ 主な機能</h2>
-              <ul>
-                ${features.map(f => `<li>${f}</li>`).join('')}
-              </ul>
-            </div>
-          ` : ''}
-          
-          ${techStack.language || techStack.framework || techStack.libraries ? `
-            <div class="readme-section">
-              <h2>🛠️ 技術スタック</h2>
-              <ul>
-                ${techStack.language ? `<li><strong>言語:</strong> ${techStack.language}</li>` : ''}
-                ${techStack.framework ? `<li><strong>フレームワーク:</strong> ${techStack.framework}</li>` : ''}
-                ${techStack.libraries && techStack.libraries.length > 0 ? 
-                  `<li><strong>主要ライブラリ:</strong> ${techStack.libraries.join(', ')}</li>` : ''}
-              </ul>
-            </div>
-          ` : ''}
-          
-          ${mermaidDiagram ? `
-            <div class="readme-section">
-              <h2>📊 プロジェクト構造</h2>
-              <div class="mermaid-container">
-                <pre class="mermaid">${mermaidDiagram}</pre>
-              </div>
-            </div>
-          ` : ''}
-          
-          <div class="readme-section">
-            <h2>📂 ファイル構成 (${data.files.length})</h2>
-            <div class="file-tree">
-              ${data.files.map(f => `
-                <div class="file-item">
-                  <span class="file-icon">📄</span>
-                  <span class="file-path">${f.path}</span>
-                  <span class="file-lang">${f.language}</span>
+      try {
+        console.log('[DEBUG] showDetailModal開始');
+        const modal = document.getElementById('detail-modal');
+        const body = document.getElementById('modal-body');
+        
+        if (!modal || !body) {
+          throw new Error('モーダル要素が見つかりません');
+        }
+        
+        console.log('[DEBUG] data:', data);
+        const summary = data.summary || {};
+        const projectName = summary.name || 'Generated Project';
+        console.log('[DEBUG] projectName:', projectName);
+        
+        // README.mdファイルを探す
+        const readmeFile = data.files ? data.files.find(f => f.path.toLowerCase().includes('readme.md')) : null;
+        const hasReadme = !!readmeFile;
+        console.log('[DEBUG] hasReadme:', hasReadme);
+        
+        // MarkdownをHTMLに変換（marked.jsを使用）
+        let readmeHtml = '';
+        if (hasReadme && typeof marked !== 'undefined') {
+          console.log('[DEBUG] Markdownをパース中...');
+          try {
+            // Mermaid図をそのまま残すためにマーク
+            const readmeContent = readmeFile.content.replace(/```mermaid\n([\s\S]*?)```/g, (match, diagram) => {
+              return `<div class="mermaid">\n${diagram}\n</div>`;
+            });
+            
+            readmeHtml = marked.parse(readmeContent);
+            console.log('[DEBUG] Markdownパース完了');
+          } catch (parseError) {
+            console.error('[ERROR] Markdownパースエラー:', parseError);
+            readmeHtml = `<p>README.mdのパースに失敗しました: ${parseError.message}</p>`;
+          }
+        } else {
+          console.log('[DEBUG] Markdownパースをスキップ (hasReadme:', hasReadme, ', marked:', typeof marked, ')');
+        }
+        
+        body.innerHTML = `
+          <div class="readme-container" style="margin: 0; padding: 0;">
+            ${hasReadme ? `
+              <div style="background: var(--surface-color); padding: 40px; border-radius: 12px; margin: 0 0 40px 0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+                <div class="markdown-body" style="margin: 0 !important; padding: 0 !important;">
+                  ${readmeHtml}
                 </div>
-              `).join('')}
-            </div>
-          </div>
-          
-          ${data.dependencies && data.dependencies.length > 0 ? `
-            <div class="readme-section">
-              <h2>📦 依存関係</h2>
-              <pre style="background: var(--bg-color); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.9rem;">${data.dependencies.join('\n')}</pre>
-            </div>
-          ` : ''}
-          
-          ${data.instructions ? `
-            <div class="readme-section">
-              <h2>⚙️ セットアップ手順</h2>
-              <pre style="background: var(--bg-color); padding: 16px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; font-size: 0.9rem;">${escapeHtml(data.instructions)}</pre>
-            </div>
-          ` : ''}
-          
-          <div class="readme-section">
-            <h2>💻 コードファイル</h2>
-            ${data.files.map(file => `
-              <div class="code-file" style="margin-bottom: 20px;">
-                <div class="code-file-header">
-                  <strong>${file.path}</strong>
-                  <div>
-                    <span class="code-language">${file.language}</span>
-                    <button 
-                      class="copy-btn"
-                      onclick="copyCode(\`${escapeHtml(file.content).replace(/`/g, '\\`')}\`, '${file.path}')"
-                    >
-                      📋 コピー
-                    </button>
+              </div>
+            ` : `
+              <div class="readme-section">
+                <h2>📖 概要</h2>
+                <p>README.mdが生成されませんでした。</p>
+              </div>
+            `}
+            
+            <!-- 追加情報セクション -->
+            <div class="readme-section" style="background: var(--bg-color); padding: 25px; border-radius: 10px; border: 1px solid var(--border-color);">
+              <h2 style="margin-top: 0;">📂 ファイル構成</h2>
+              <div class="file-tree">
+                ${data.files.map(f => `
+                  <div class="file-item">
+                    <span class="file-icon">📄</span>
+                    <span class="file-path">${f.path}</span>
+                    <span class="file-lang">${f.language}</span>
                   </div>
-                </div>
-                <pre><code>${escapeHtml(file.content)}</code></pre>
+                `).join('')}
               </div>
-            `).join('')}
+            </div>
+            
+            <div class="readme-section" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%); padding: 30px; border-radius: 10px; text-align: center;">
+              <h2 style="color: white; margin-top: 0; margin-bottom: 15px;">📥 ダウンロード</h2>
+              <p style="color: rgba(255, 255, 255, 0.9); margin-bottom: 20px;">
+                プロジェクト全体をZIPファイルでダウンロードできます。<br>
+                解凍後すぐに実行可能です。
+              </p>
+              <button 
+                class="action-btn download-btn" 
+                onclick="downloadZip('${data.generationId}', '${projectName.replace(/'/g, "\\'")}')"
+                style="background: white; color: var(--primary-color); font-weight: 700; border: none; cursor: pointer; transition: transform 0.2s;"
+                onmouseover="this.style.transform='scale(1.05)'"
+                onmouseout="this.style.transform='scale(1)'"
+              >
+                💾 プロジェクトをダウンロード (.zip)
+              </button>
+            </div>
+            
+            <div class="readme-section" style="background: var(--bg-color); padding: 20px; border-radius: 10px; border: 1px solid var(--border-color);">
+              <h2 style="margin-top: 0;">ℹ️ メタデータ</h2>
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 12px 20px; color: var(--text-secondary); font-size: 0.9rem;">
+                <strong style="color: var(--text-primary);">生成ID:</strong>
+                <code style="background: var(--surface-color); padding: 4px 8px; border-radius: 4px;">${data.generationId}</code>
+                
+                <strong style="color: var(--text-primary);">生成日時:</strong>
+                <span>${formatDate(data.timestamp)}</span>
+                
+                <strong style="color: var(--text-primary);">モデル:</strong>
+                <span>${formatModel(data.model)}</span>
+                
+                <strong style="color: var(--text-primary);">ファイル数:</strong>
+                <span>${data.files ? data.files.length : 0}ファイル</span>
+              </div>
+            </div>
           </div>
-          
-          <div class="readme-section">
-            <h2>📥 ダウンロード</h2>
-            <p style="margin-bottom: 15px; color: var(--text-secondary);">
-              プロジェクト全体をZIPファイルでダウンロードできます。解凍後すぐに実行可能です。
-            </p>
-            <button class="action-btn download-btn" onclick="downloadZip('${data.generationId}', '${projectName.replace(/'/g, "\\'")}')">
-              💾 プロジェクトをダウンロード (.zip)
-            </button>
-          </div>
-          
-          <div class="readme-section">
-            <h2>ℹ️ メタデータ</h2>
-            <ul style="color: var(--text-secondary); font-size: 0.9rem;">
-              <li>生成ID: <code>${data.generationId}</code></li>
-              <li>生成日時: ${formatDate(data.timestamp)}</li>
-              <li>モデル: ${formatModel(data.model)}</li>
-            </ul>
-          </div>
-        </div>
-      `;
+        `;
       
-      modal.classList.remove('hidden');
-      
-      // Mermaid図をレンダリング
-      if (mermaidDiagram && window.mermaid) {
-        setTimeout(() => {
-          window.mermaid.run({
-            querySelector: '.mermaid',
-          });
-        }, 100);
+        console.log('[DEBUG] モーダルを表示');
+        modal.classList.remove('hidden');
+        
+        // Mermaid図をレンダリング
+        if (hasReadme && window.mermaid) {
+          console.log('[DEBUG] Mermaid図をレンダリング');
+          setTimeout(() => {
+            window.mermaid.run({
+              querySelector: '.markdown-body .mermaid',
+            });
+          }, 100);
+        }
+        
+        console.log('[DEBUG] showDetailModal完了');
+      } catch (error) {
+        console.error('[ERROR] showDetailModalエラー:', error);
+        console.error('[ERROR] Stack:', error.stack);
+        alert(`モーダル表示エラー: ${error.message}`);
       }
     }
     
