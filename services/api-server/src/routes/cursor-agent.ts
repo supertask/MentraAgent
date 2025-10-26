@@ -45,6 +45,7 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
               name: project.name,
               githubRepo: project.githubRepo,
               githubBranch: project.githubBranch,
+              githubSubDirectory: project.githubSubDirectory,
             } : null,
           };
         })
@@ -229,6 +230,7 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
         additionalContext,
         githubRepo: project.githubRepo || undefined,
         githubBranch: project.githubBranch || undefined,
+        githubSubDirectory: project.githubSubDirectory || undefined,
       });
 
       // セッションにプランとCursor情報を保存
@@ -312,6 +314,7 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
         plan: session.plan,
         githubRepo: project.githubRepo || undefined,
         githubBranch: project.githubBranch || undefined,
+        githubSubDirectory: project.githubSubDirectory || undefined,
       });
 
       // 結果をストレージに保存
