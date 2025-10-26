@@ -152,22 +152,83 @@ model User {
   @@index([email])
 }
 
-// RAGドキュメント
-model Document {
+// プロジェクト
+model Project {
   id          String   @id @default(uuid())
+  name        String   @unique
+  githubRepo  String?  // GitHubリポジトリURL（Cursor Agent用）
+  githubBranch String? @default("main") // ブランチ名
+  githubSubDirectory String? // リポジトリ内のサブディレクトリ（例: /frontend, /packages/core）
   
-  title       String
-  content     String   @db.Text
-  source      String   // 'github' | 'notion' | 'slack' | 'manual'
-  sourceUrl   String?
-  
-  vectorId    String?  // Vector DBのID
-  metadata    Json?
+  documents   ProjectDocument[]
+  cursorAgentSessions CursorAgentSession[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  @@index([source])
-  @@index([vectorId])
+  @@index([name])
+}
+
+// プロジェクトとドキュメントの中間テーブル
+model ProjectDocument {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([projectId, documentId])
+  @@index([projectId])
+  @@index([documentId])
+}
+
+// ドキュメント（仕様書・議事録）
+model Document {
+  id          String   @id @default(uuid())
+  sessionId   String
+  
+  title       String
+  summary     String   @db.Text
+  content     Json     // Markdown + metadata
+  
+  type        String   // 'specification' | 'minutes' | 'memo'
+  format      String   @default("markdown") // 'markdown'
+  
+  projects    ProjectDocument[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([sessionId])
+  @@index([type])
+}
+
+// Cursor Agent セッション
+model CursorAgentSession {
+  id            String   @id @default(uuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  documentIds   String[] // 参照する仕様書ID
+  
+  status        String   // 'planning' | 'building' | 'completed' | 'error'
+  plan          Json?    // Cursor Agentが作成したプラン
+  build         Json?    // Cursor Agentが作成したビルド結果
+  chatHistory   Json[]   @default([]) // チャット履歴
+  
+  // Cursor API関連
+  cursorWorkspaceId String? // Cursor API workspace ID
+  cursorAgentId String?     // Cursor Agent ID
+  cursorUrl     String?     // Cursor UIでの表示URL
+  branchName    String?     // GitHubブランチ名
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([projectId])
+  @@index([status])
 }
 

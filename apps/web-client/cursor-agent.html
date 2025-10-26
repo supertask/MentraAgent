@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursor Agent - Realworld Agent</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .back-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background: var(--surface-color);
+      color: var(--text-primary);
+      text-decoration: none;
+      border-radius: 6px;
+      margin-bottom: 30px;
+      transition: all 0.2s;
+    }
+
+    .back-button:hover {
+      background: var(--primary-color);
+    }
+
+    .cursor-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .cursor-panel {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      height: fit-content;
+    }
+
+    .cursor-panel h3 {
+      color: var(--accent-color);
+      margin-bottom: 20px;
+      font-size: 1.3rem;
+    }
+
+    .project-selector {
+      margin-bottom: 20px;
+    }
+
+    .project-selector label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .project-selector select {
+      width: 100%;
+      padding: 10px;
+      background: var(--bg-color);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .document-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-color);
+    }
+
+    .document-item {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+
+    .document-item:last-child {
+      border-bottom: none;
+    }
+
+    .document-item:hover {
+      background: var(--surface-color);
+    }
+
+    .document-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+
+    .document-title {
+      flex: 1;
+      font-weight: 500;
+    }
+
+    .document-type {
+      padding: 2px 8px;
+      background: var(--primary-color);
+      color: white;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 600px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px 6px 0 0;
+      margin-bottom: 0;
+    }
+
+    .chat-message {
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      max-width: 80%;
+    }
+
+    .chat-message.user {
+      background: var(--primary-color);
+      color: white;
+      margin-left: auto;
+    }
+
+    .chat-message.assistant {
+      background: var(--surface-color);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .chat-message-role {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    }
+
+    .chat-input-container {
+      display: flex;
+      gap: 10px;
+      border: 1px solid var(--border-color);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      padding: 12px;
+      background: var(--bg-color);
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 10px;
+      background: var(--surface-color);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+      resize: none;
+    }
+
+    .chat-send-btn {
+      padding: 10px 24px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .chat-send-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .chat-send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .plan-container {
+      margin-top: 20px;
+      padding: 20px;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .plan-container h4 {
+      color: var(--accent-color);
+      margin-bottom: 12px;
+    }
+
+    .plan-summary {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .plan-files {
+      list-style: none;
+      padding: 0;
+    }
+
+    .plan-file {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      background: var(--surface-color);
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .plan-file-path {
+      font-family: monospace;
+      color: var(--text-primary);
+    }
+
+    .plan-file-desc {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .action-button {
+      flex: 1;
+      padding: 16px 24px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-button.primary {
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      color: white;
+    }
+
+    .action-button.primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .action-button.secondary {
+      background: var(--surface-color);
+      color: var(--text-primary);
+      border: 2px solid var(--primary-color);
+    }
+
+    .action-button.secondary:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .action-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .status-badge.planning {
+      background: #fbbf24;
+      color: #000;
+    }
+
+    .status-badge.building {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .status-badge.completed {
+      background: #10b981;
+      color: white;
+    }
+
+    .status-badge.error {
+      background: #ef4444;
+      color: white;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 1200px) {
+      .cursor-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <a href="/documents.html" class="back-button">← ドキュメント履歴に戻る</a>
+        <a href="/cursor-builds.html" class="back-button" style="background: #667eea; color: white;">
+          📂 生成履歴を見る
+        </a>
+      </div>
+      <h1>🤖 Cursor Agent - コード実装</h1>
+      <p class="subtitle">仕様書からAIがコードを自動実装</p>
+    </header>
+
+    <main>
+      <div id="loading" class="loading">
+        <p>読み込み中...</p>
+      </div>
+
+      <div id="empty-state" class="empty-state hidden">
+        <div style="font-size: 4rem; margin-bottom: 20px;">📁</div>
+        <h2>プロジェクトを選択してください</h2>
+        <p>プロジェクトと仕様書を選択して、Cursor Agentでコード実装を開始します</p>
+      </div>
+
+      <div id="content" class="cursor-container hidden">
+        <!-- 左パネル: プロジェクト選択 & 仕様書リスト -->
+        <div>
+          <div class="cursor-panel">
+            <h3>📁 プロジェクト選択</h3>
+            <div class="project-selector">
+              <label>プロジェクト:</label>
+              <select id="project-select">
+                <option value="">読み込み中...</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="cursor-panel" style="margin-top: 20px;">
+            <h3>📋 このプロジェクトの仕様書</h3>
+            <div id="document-list" class="document-list">
+              <div class="empty-state" style="padding: 30px;">
+                プロジェクトを選択してください
+              </div>
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 10px;">
+              <button id="select-all-btn" class="secondary-button" style="flex: 1;" disabled>
+                全て選択
+              </button>
+              <button id="deselect-all-btn" class="secondary-button" style="flex: 1;" disabled>
+                選択解除
+              </button>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button id="create-plan-btn" class="action-button secondary" disabled>
+              🔧 Planを立てる
+            </button>
+            <button id="build-btn" class="action-button primary" disabled>
+              🚀 実装を開始 (Build)
+            </button>
+          </div>
+        </div>
+
+        <!-- 右パネル: Chat & Plan表示 -->
+        <div>
+          <div class="cursor-panel">
+            <h3>💬 Cursor Agent Chat</h3>
+            <div class="chat-container">
+              <div id="chat-messages" class="chat-messages">
+                <div class="chat-message assistant">
+                  <div class="chat-message-role">Cursor Agent</div>
+                  <div>こんにちは！仕様書を選択してプランを作成しましょう。</div>
+                </div>
+              </div>
+              <div class="chat-input-container">
+                <textarea 
+                  id="chat-input" 
+                  class="chat-input" 
+                  rows="2" 
+                  placeholder="メッセージを入力..."
+                  disabled
+                ></textarea>
+                <button id="chat-send-btn" class="chat-send-btn" disabled>送信</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="plan-display" class="plan-container hidden">
+            <h4>📋 実装プラン <span id="plan-status" class="status-badge planning">Planning</span></h4>
+            <div id="plan-content"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    const API_BASE_URL = 'http://localhost:3000';
+    
+    let projects = [];
+    let documents = [];
+    let selectedProjectId = null;
+    let sessionId = null;
+    let currentPlan = null;
+
+    const projectSelect = document.getElementById('project-select');
+    const documentList = document.getElementById('document-list');
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const deselectAllBtn = document.getElementById('deselect-all-btn');
+    const createPlanBtn = document.getElementById('create-plan-btn');
+    const buildBtn = document.getElementById('build-btn');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const planDisplay = document.getElementById('plan-display');
+    const planContent = document.getElementById('plan-content');
+    const planStatus = document.getElementById('plan-status');
+
+    async function init() {
+      const loading = document.getElementById('loading');
+      const emptyState = document.getElementById('empty-state');
+      const content = document.getElementById('content');
+
+      try {
+        // プロジェクト一覧取得
+        const res = await fetch(`${API_BASE_URL}/api/projects`);
+        if (!res.ok) throw new Error('Failed to load projects');
+        
+        const data = await res.json();
+        projects = data.projects;
+
+        loading.classList.add('hidden');
+
+        if (projects.length === 0) {
+          emptyState.classList.remove('hidden');
+        } else {
+          content.classList.remove('hidden');
+          renderProjects();
+        }
+
+        setupEventListeners();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        loading.classList.add('hidden');
+        emptyState.innerHTML = `
+          <div style="font-size: 4rem; margin-bottom: 20px;">❌</div>
+          <h2>読み込みエラー</h2>
+          <p>APIサーバーが起動していることを確認してください</p>
+        `;
+        emptyState.classList.remove('hidden');
+      }
+    }
+
+    function renderProjects() {
+      projectSelect.innerHTML = '<option value="">プロジェクトを選択...</option>';
+      projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = project.name;
+        projectSelect.appendChild(option);
+      });
+    }
+
+    async function loadDocuments(projectId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/documents`);
+        if (!res.ok) throw new Error('Failed to load documents');
+        
+        const data = await res.json();
+        documents = data.documents;
+
+        renderDocuments();
+      } catch (error) {
+        console.error('Error loading documents:', error);
+        alert('ドキュメントの読み込みに失敗しました');
+      }
+    }
+
+    function renderDocuments() {
+      if (documents.length === 0) {
+        documentList.innerHTML = '<div class="empty-state" style="padding: 30px;">ドキュメントがありません</div>';
+        selectAllBtn.disabled = true;
+        deselectAllBtn.disabled = true;
+        return;
+      }
+
+      documentList.innerHTML = '';
+      documents.forEach(doc => {
+        const item = document.createElement('div');
+        item.className = 'document-item';
+        
+        const typeLabel = {
+          specification: '仕様書',
+          minutes: '議事録',
+          memo: 'メモ'
+        }[doc.type] || doc.type;
+
+        item.innerHTML = `
+          <input type="checkbox" class="doc-checkbox" value="${doc.id}">
+          <div class="document-title">${doc.title}</div>
+          <span class="document-type">${typeLabel}</span>
+        `;
+        documentList.appendChild(item);
+      });
+
+      selectAllBtn.disabled = false;
+      deselectAllBtn.disabled = false;
+      createPlanBtn.disabled = false;
+    }
+
+    async function createSession() {
+      const selectedDocs = getSelectedDocuments();
+      if (selectedDocs.length === 0) {
+        alert('少なくとも1つの仕様書を選択してください');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: selectedProjectId,
+            documentIds: selectedDocs
+          })
+        });
+
+        if (!res.ok) throw new Error('Failed to create session');
+
+        const data = await res.json();
+        sessionId = data.session.id;
+
+        addChatMessage('assistant', 'セッションを作成しました。プランを生成します...');
+        
+        // チャット入力を有効化
+        chatInput.disabled = false;
+        chatSendBtn.disabled = false;
+
+        return sessionId;
+      } catch (error) {
+        console.error('Error creating session:', error);
+        throw error;
+      }
+    }
+
+    async function createPlan() {
+      try {
+        createPlanBtn.disabled = true;
+        createPlanBtn.textContent = 'プラン生成中...';
+
+        if (!sessionId) {
+          await createSession();
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${sessionId}/plan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+
+        if (!res.ok) throw new Error('Failed to create plan');
+
+        const data = await res.json();
+        currentPlan = data.plan;
+
+        displayPlan(currentPlan);
+        addChatMessage('assistant', `プランを作成しました！${currentPlan.files.length}個のファイルを${currentPlan.steps.length}ステップで実装します。確認して、準備ができたら「実装を開始」ボタンを押してください。`);
+
+        buildBtn.disabled = false;
+      } catch (error) {
+        console.error('Error creating plan:', error);
+        alert('プラン作成に失敗しました');
+      } finally {
+        createPlanBtn.disabled = false;
+        createPlanBtn.textContent = '🔧 Planを立てる';
+      }
+    }
+
+    async function executeBuild() {
+      if (!currentPlan) {
+        alert('先にプランを作成してください');
+        return;
+      }
+
+      try {
+        buildBtn.disabled = true;
+        buildBtn.textContent = 'ビルド中...';
+        planStatus.textContent = 'Building';
+        planStatus.className = 'status-badge building';
+
+        addChatMessage('assistant', 'ビルドを開始します。しばらくお待ちください...');
+
+        const res = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${sessionId}/build`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+
+        if (!res.ok) throw new Error('Failed to execute build');
+
+        const data = await res.json();
+
+        planStatus.textContent = 'Completed';
+        planStatus.className = 'status-badge completed';
+
+        let message = `✅ ビルドが完了しました！${data.fileCount}個のファイルを生成しました。\n\n保存先: ${data.storageDir}`;
+        
+        if (data.cursorUrl) {
+          message += `\n\n🎨 Cursor UI: ${data.cursorUrl}`;
+        }
+        if (data.branchName) {
+          message += `\n🌿 ブランチ: ${data.branchName}`;
+        }
+
+        addChatMessage('assistant', message);
+
+        // Cursor UIリンクボタンをチャットに追加
+        if (data.cursorUrl || data.branchName) {
+          const linkHtml = document.createElement('div');
+          linkHtml.style.margin = '12px 0';
+          linkHtml.innerHTML = `
+            <div style="padding: 16px; background: #f0f7ff; border-radius: 8px; margin-top: 12px;">
+              ${data.cursorUrl ? `
+                <a href="${data.cursorUrl}" target="_blank" 
+                   style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; 
+                          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                          color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-right: 12px;">
+                  🎨 Cursor UIで開く
+                </a>
+              ` : ''}
+              ${data.branchName ? `
+                <div style="margin-top: 12px; font-size: 0.9em; color: #495057;">
+                  <strong>🌿 ブランチ:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">${data.branchName}</code>
+                </div>
+              ` : ''}
+            </div>
+          `;
+          const chatMessages = document.getElementById('chat-messages');
+          chatMessages.appendChild(linkHtml);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        setTimeout(() => {
+          if (confirm('ビルドが完了しました！\n生成履歴ページで詳細を確認しますか？')) {
+            window.location.href = '/cursor-builds.html';
+          }
+        }, 500);
+
+      } catch (error) {
+        console.error('Error executing build:', error);
+        alert('ビルドに失敗しました');
+        planStatus.textContent = 'Error';
+        planStatus.className = 'status-badge error';
+      } finally {
+        buildBtn.disabled = false;
+        buildBtn.textContent = '🚀 実装を開始 (Build)';
+      }
+    }
+
+    async function sendChatMessage() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      if (!sessionId) {
+        alert('先にプランを作成してください');
+        return;
+      }
+
+      try {
+        addChatMessage('user', message);
+        chatInput.value = '';
+        chatSendBtn.disabled = true;
+
+        const res = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${sessionId}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+
+        if (!res.ok) throw new Error('Failed to send message');
+
+        const data = await res.json();
+        addChatMessage('assistant', data.response);
+
+      } catch (error) {
+        console.error('Error sending message:', error);
+        addChatMessage('assistant', 'エラーが発生しました。もう一度お試しください。');
+      } finally {
+        chatSendBtn.disabled = false;
+      }
+    }
+
+    function displayPlan(plan) {
+      planDisplay.classList.remove('hidden');
+      
+      let html = `
+        <div class="plan-summary">${plan.summary}</div>
+        <p style="color: var(--text-secondary); margin-bottom: 16px;">
+          ⏱️ 推定時間: ${plan.estimatedTime}
+        </p>
+      `;
+
+      // Cursor UI リンクとブランチ情報を表示
+      if (plan.cursorUrl || plan.branchName) {
+        html += '<div style="margin: 16px 0; padding: 16px; background: #f0f7ff; border-radius: 8px;">';
+        
+        if (plan.cursorUrl) {
+          html += `
+            <a href="${plan.cursorUrl}" target="_blank" 
+               style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; 
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                      color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-right: 12px;">
+              🎨 Cursor UIで開く
+            </a>
+          `;
+        }
+        
+        if (plan.branchName) {
+          html += `
+            <div style="margin-top: 12px; font-size: 0.9em; color: #495057;">
+              <strong>🌿 ブランチ:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">${plan.branchName}</code>
+            </div>
+          `;
+        }
+        
+        html += '</div>';
+      }
+
+      html += `<h5 style="margin-bottom: 12px; color: var(--text-primary);">生成されるファイル:</h5>
+        <ul class="plan-files">`;
+
+      plan.files.forEach(file => {
+        html += `
+          <li class="plan-file">
+            <div>
+              <div class="plan-file-path">${file.path}</div>
+              <div class="plan-file-desc">${file.description}</div>
+            </div>
+          </li>
+        `;
+      });
+
+      html += '</ul>';
+      planContent.innerHTML = html;
+    }
+
+    function addChatMessage(role, content) {
+      const message = document.createElement('div');
+      message.className = `chat-message ${role}`;
+      
+      const roleLabel = role === 'user' ? 'You' : 'Cursor Agent';
+      message.innerHTML = `
+        <div class="chat-message-role">${roleLabel}</div>
+        <div>${content}</div>
+      `;
+
+      chatMessages.appendChild(message);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function getSelectedDocuments() {
+      const checkboxes = document.querySelectorAll('.doc-checkbox:checked');
+      return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    function setupEventListeners() {
+      projectSelect.addEventListener('change', async (e) => {
+        selectedProjectId = e.target.value;
+        if (selectedProjectId) {
+          await loadDocuments(selectedProjectId);
+        }
+      });
+
+      selectAllBtn.addEventListener('click', () => {
+        document.querySelectorAll('.doc-checkbox').forEach(cb => cb.checked = true);
+      });
+
+      deselectAllBtn.addEventListener('click', () => {
+        document.querySelectorAll('.doc-checkbox').forEach(cb => cb.checked = false);
+      });
+
+      createPlanBtn.addEventListener('click', createPlan);
+      buildBtn.addEventListener('click', executeBuild);
+      chatSendBtn.addEventListener('click', sendChatMessage);
+
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendChatMessage();
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
+

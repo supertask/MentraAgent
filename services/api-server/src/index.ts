@@ -13,6 +13,8 @@ import { deviceRouter } from './routes/device';
 import { sessionRouter } from './routes/session';
 import { processingRouter } from './routes/processing';
 import { webhookRouter } from './routes/webhook';
+import { projectsRouter } from './routes/projects';
+import { cursorAgentRouter } from './routes/cursor-agent';
 import { DatabaseService } from './services/DatabaseService';
 import { RedisService } from './services/RedisService';
 
@@ -52,6 +54,8 @@ await fastify.register(deviceRouter, { prefix: '/api/device' });
 await fastify.register(sessionRouter, { prefix: '/api/sessions' });
 await fastify.register(processingRouter, { prefix: '/api/processing' });
 await fastify.register(webhookRouter, { prefix: '/api/webhook' });
+await fastify.register(projectsRouter, { prefix: '/api/projects' });
+await fastify.register(cursorAgentRouter, { prefix: '/api/cursor-agent' });
 
 // ヘルスチェック
 fastify.get('/health', async () => {
@@ -75,6 +79,8 @@ fastify.get('/', async () => {
       '/api/session',
       '/api/processing',
       '/api/webhook',
+      '/api/projects',
+      '/api/cursor-agent',
       '/health',
     ],
   };

@@ -8,6 +8,7 @@ import { logger } from '../utils/logger';
 import { DatabaseService } from '../services/DatabaseService';
 import { ModalGPUService } from '../services/ModalGPUService';
 import { SpecificationRepository } from '../repositories/SpecificationRepository';
+import { DocumentRepository } from '../repositories/DocumentRepository';
 import { TranscriptionRepository } from '../repositories/TranscriptionRepository';
 import { PhotoRepository } from '../repositories/PhotoRepository';
 import { SessionRepository } from '../repositories/SessionRepository';
@@ -16,6 +17,7 @@ export const processingRouter: FastifyPluginAsync = async (fastify) => {
   const db = fastify.db as DatabaseService;
   const modalGPU = new ModalGPUService();
   const specRepo = new SpecificationRepository(db);
+  const documentRepo = new DocumentRepository(db);
   const transcriptionRepo = new TranscriptionRepository(db);
   const photoRepo = new PhotoRepository(db);
   const sessionRepo = new SessionRepository(db);
@@ -141,6 +143,120 @@ export const processingRouter: FastifyPluginAsync = async (fastify) => {
       logger.error('仕様書生成エラー', error as Error);
       return reply.status(500).send({
         error: 'Failed to generate specification',
+        message: (error as Error).message,
+      });
+    }
+  });
+
+  // ドキュメント生成（仕様書・議事録・メモ）
+  fastify.post('/generate-document', async (request, reply) => {
+    try {
+      const body = request.body as any;
+      const { sessionId, projectIds, documentType, additionalPrompt } = body;
+
+      if (!sessionId) {
+        return reply.status(400).send({ error: 'sessionId is required' });
+      }
+
+      if (!projectIds || !Array.isArray(projectIds) || projectIds.length === 0) {
+        return reply.status(400).send({
+          error: 'projectIds is required and must be a non-empty array',
+        });
+      }
+
+      logger.info('Document generation request', {
+        sessionId,
+        projectIds,
+        documentType: documentType || 'auto',
+      });
+
+      // セッションのコンテキストを取得
+      const transcriptions = await transcriptionRepo.findBySessionId(sessionId);
+      const photos = await photoRepo.findBySessionId(sessionId);
+
+      logger.info('コンテキストを取得しました', {
+        sessionId,
+        transcriptionCount: transcriptions.length,
+        photoCount: photos.length,
+      });
+
+      // コンテキストの整形
+      const context = {
+        transcriptions: transcriptions
+          .filter((t) => t.text && t.text.trim() !== '')
+          .map((t) => ({
+            text: t.text,
+            timestamp: t.timestamp,
+            speaker: t.speaker,
+          })),
+        photos: photos.map((p) => ({
+          filename: p.filename,
+          storageKey: p.requestId,
+          timestamp: p.timestamp,
+        })),
+      };
+
+      // Modal GPUサーバーでドキュメントを生成
+      logger.info('Modal GPUサーバーでドキュメント生成中...', { sessionId });
+      const generatedDoc = await modalGPU.generateDocument(
+        context,
+        documentType || 'auto',
+        additionalPrompt || ''
+      );
+
+      // セッションの存在確認（存在しない場合は作成）
+      let session = await sessionRepo.findById(sessionId);
+      if (!session) {
+        session = await sessionRepo.create({
+          userId: 'anonymous',
+          deviceType: 'webcam',
+          status: 'completed',
+          metadata: {},
+        });
+        logger.info('ドキュメント用のセッションを作成しました', {
+          oldSessionId: sessionId,
+          newSessionId: session.sessionId,
+        });
+      }
+
+      // データベースに保存
+      const savedDoc = await documentRepo.create({
+        sessionId: session.sessionId,
+        title: generatedDoc.title,
+        summary: generatedDoc.content.substring(0, 500),
+        content: {
+          markdown: generatedDoc.content,
+          model: generatedDoc.model,
+          generatedAt: new Date().toISOString(),
+          contextSummary: {
+            transcriptionCount: transcriptions.length,
+            photoCount: photos.length,
+          },
+        },
+        type: generatedDoc.type as 'specification' | 'minutes' | 'memo',
+        projectIds,
+      });
+
+      logger.info('ドキュメントを生成・保存しました', {
+        documentId: savedDoc.id,
+        sessionId,
+        title: savedDoc.title,
+        type: savedDoc.type,
+        projectIds,
+      });
+
+      return {
+        documentId: savedDoc.id,
+        title: savedDoc.title,
+        summary: savedDoc.summary,
+        type: savedDoc.type,
+        model: generatedDoc.model,
+        projectIds,
+      };
+    } catch (error) {
+      logger.error('ドキュメント生成エラー', error as Error);
+      return reply.status(500).send({
+        error: 'Failed to generate document',
         message: (error as Error).message,
       });
     }

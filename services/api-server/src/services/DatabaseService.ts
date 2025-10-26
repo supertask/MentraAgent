@@ -8,7 +8,7 @@ import type { IDatabase } from '@realworld-agent/shared';
 import { logger } from '../utils/logger';
 
 export class DatabaseService implements IDatabase {
-  private prisma: PrismaClient | null = null;
+  public prisma: PrismaClient | null = null;
   private connected = false;
 
   async connect(): Promise<void> {

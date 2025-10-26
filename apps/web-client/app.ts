@@ -13,8 +13,9 @@ const videoOverlay = document.getElementById('video-overlay') as HTMLDivElement;
 const startButton = document.getElementById('start-button') as HTMLButtonElement;
 const stopButton = document.getElementById('stop-button') as HTMLButtonElement;
 const captureButton = document.getElementById('capture-button') as HTMLButtonElement;
-const generateSpecButton = document.getElementById('generate-spec-button') as HTMLButtonElement;
-const generateCodeButton = document.getElementById('generate-code-button') as HTMLButtonElement;
+const generateDocumentButton = document.getElementById('generate-document-button') as HTMLButtonElement;
+
+const projectSelect = document.getElementById('project-select') as HTMLSelectElement;
 
 const connectionStatus = document.getElementById('connection-status') as HTMLSpanElement;
 const sessionIdEl = document.getElementById('session-id') as HTMLSpanElement;
@@ -27,15 +28,13 @@ const transcriptionOutput = document.getElementById('transcription-output') as H
 const importantMoments = document.getElementById('important-moments') as HTMLDivElement;
 const systemLog = document.getElementById('system-log') as HTMLDivElement;
 
-// コード生成モーダル要素
-const codeModal = document.getElementById('code-modal') as HTMLDivElement;
-const closeModal = document.getElementById('close-modal') as HTMLButtonElement;
-const codePrompt = document.getElementById('code-prompt') as HTMLTextAreaElement;
-const codeLanguage = document.getElementById('code-language') as HTMLSelectElement;
-const codeFramework = document.getElementById('code-framework') as HTMLSelectElement;
-const createPR = document.getElementById('create-pr') as HTMLInputElement;
-const generateCodeSubmit = document.getElementById('generate-code-submit') as HTMLButtonElement;
-const cancelCodeGen = document.getElementById('cancel-code-gen') as HTMLButtonElement;
+// ドキュメント生成モーダル要素
+const documentModal = document.getElementById('document-modal') as HTMLDivElement;
+const closeDocumentModal = document.getElementById('close-document-modal') as HTMLButtonElement;
+const selectedProjectsDisplay = document.getElementById('selected-projects-display') as HTMLDivElement;
+const documentPrompt = document.getElementById('document-prompt') as HTMLTextAreaElement;
+const generateDocumentSubmit = document.getElementById('generate-document-submit') as HTMLButtonElement;
+const cancelDocument = document.getElementById('cancel-document') as HTMLButtonElement;
 
 // グローバル状態
 let mediaStream: MediaStream | null = null;
@@ -45,6 +44,7 @@ let sessionId: string | null = null;
 let recordingStartTime: number | null = null;
 let recordingInterval: number | null = null;
 let audioContext: AudioContext | null = null;
+let projects: Array<{ id: string; name: string }> = [];
 
 // 初期化
 async function init() {
@@ -54,6 +54,10 @@ async function init() {
     // デバイス一覧を取得
     await loadDevices();
     addLog('デバイス一覧を読み込みました', 'success');
+    
+    // プロジェクト一覧を読み込み
+    await loadProjects();
+    addLog('プロジェクト一覧を読み込みました', 'success');
     
     // イベントリスナーの設定
     setupEventListeners();
@@ -97,21 +101,53 @@ async function loadDevices() {
   }
 }
 
+// プロジェクト一覧を読み込む
+async function loadProjects() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects`);
+    if (!response.ok) throw new Error('Failed to load projects');
+    
+    const data = await response.json();
+    projects = data.projects;
+    
+    // セレクトボックスを更新
+    projectSelect.innerHTML = '';
+    if (projects.length === 0) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'プロジェクトがありません';
+      option.disabled = true;
+      projectSelect.appendChild(option);
+    } else {
+      projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.id;
+        option.textContent = project.name;
+        projectSelect.appendChild(option);
+      });
+    }
+  } catch (error) {
+    addLog(`プロジェクト取得エラー: ${error}`, 'error');
+    throw error;
+  }
+}
+
 // イベントリスナーの設定
 function setupEventListeners() {
   startButton.addEventListener('click', startSession);
   stopButton.addEventListener('click', stopSession);
   captureButton.addEventListener('click', capturePhoto);
-  generateSpecButton.addEventListener('click', generateSpecification);
-  generateCodeButton.addEventListener('click', openCodeModal);
-  closeModal.addEventListener('click', closeCodeModal);
-  cancelCodeGen.addEventListener('click', closeCodeModal);
-  generateCodeSubmit.addEventListener('click', generateCode);
+  generateDocumentButton.addEventListener('click', openDocumentModal);
+  
+  // ドキュメント生成モーダル
+  closeDocumentModal.addEventListener('click', closeDocumentModalFn);
+  cancelDocument.addEventListener('click', closeDocumentModalFn);
+  generateDocumentSubmit.addEventListener('click', generateDocument);
   
   // モーダル外クリックで閉じる
-  codeModal.addEventListener('click', (e) => {
-    if (e.target === codeModal) {
-      closeCodeModal();
+  documentModal.addEventListener('click', (e) => {
+    if (e.target === documentModal) {
+      closeDocumentModalFn();
     }
   });
 }
@@ -157,8 +193,7 @@ async function startSession() {
     startButton.disabled = true;
     stopButton.disabled = false;
     captureButton.disabled = false;
-    generateSpecButton.disabled = false;
-    generateCodeButton.disabled = false;
+    generateDocumentButton.disabled = false;
     cameraSelect.disabled = true;
     microphoneSelect.disabled = true;
     
@@ -197,9 +232,12 @@ async function createSession(): Promise<void> {
     
     const data = await response.json();
     sessionId = data.sessionId;
-    sessionIdEl.textContent = sessionId.substring(0, 16) + '...';
-    
-    addLog(`セッションを作成しました: ${sessionId.substring(0, 16)}...`, 'success');
+    if (sessionId) {
+      sessionIdEl.textContent = sessionId.substring(0, 16) + '...';
+      addLog(`セッションを作成しました: ${sessionId.substring(0, 16)}...`, 'success');
+    } else {
+      throw new Error('セッションIDが取得できませんでした');
+    }
   } catch (error) {
     addLog(`セッション作成エラー: ${error}`, 'error');
     throw error;
@@ -388,7 +426,7 @@ function displayImportantMoment(data: any) {
 
 // 写真を撮影
 async function capturePhoto() {
-  if (!videoPreview) return;
+  if (!videoPreview || !sessionId) return;
   
   addLog('写真を撮影しています...', 'info');
   
@@ -426,78 +464,62 @@ async function capturePhoto() {
   }
 }
 
-// 仕様書生成
-async function generateSpecification() {
-  addLog('仕様書を生成しています...', 'info');
-  
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/processing/generate-spec`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      addLog(`仕様書を生成しました: ${data.title}`, 'success');
-    } else {
-      addLog('仕様書の生成に失敗しました', 'error');
-    }
-  } catch (error) {
-    addLog(`仕様書生成エラー: ${error}`, 'error');
-    console.error(error);
-  }
-}
-
-// コード生成モーダルを開く
-function openCodeModal() {
-  codeModal.classList.remove('hidden');
-  codePrompt.value = '';
-  codePrompt.focus();
-}
-
-// コード生成モーダルを閉じる
-function closeCodeModal() {
-  codeModal.classList.add('hidden');
-}
-
-// コード生成
-async function generateCode() {
-  const prompt = codePrompt.value.trim();
-  
-  // プロンプトが空でも文字起こしから推測するのでOK
-  addLog('コードを生成しています...', 'info');
-  
-  if (!prompt) {
-    addLog('文字起こしから要求を推測します...', 'info');
+// ドキュメント生成モーダルを開く
+function openDocumentModal() {
+  // 選択されたプロジェクトを確認
+  const selectedOptions = Array.from(projectSelect.selectedOptions);
+  if (selectedOptions.length === 0) {
+    alert('プロジェクトを選択してください');
+    return;
   }
   
-  generateCodeSubmit.disabled = true;
-  generateCodeSubmit.textContent = '生成中...';
+  // 選択されたプロジェクトを表示
+  const selectedNames = selectedOptions.map(opt => opt.textContent).join(', ');
+  selectedProjectsDisplay.innerHTML = `<strong>${selectedNames}</strong>`;
+  
+  documentModal.classList.remove('hidden');
+  documentPrompt.value = '';
+  documentPrompt.focus();
+}
+
+// ドキュメント生成モーダルを閉じる
+function closeDocumentModalFn() {
+  documentModal.classList.add('hidden');
+}
+
+// ドキュメント生成
+async function generateDocument() {
+  if (!sessionId) {
+    alert('セッションが開始されていません');
+    return;
+  }
+  
+  const prompt = documentPrompt.value.trim();
+  const selectedProjectIds = Array.from(projectSelect.selectedOptions).map(opt => opt.value);
+  
+  if (selectedProjectIds.length === 0) {
+    alert('プロジェクトを選択してください');
+    return;
+  }
+  
+  // ドキュメントタイプを取得
+  const documentTypeInput = document.querySelector('input[name="document-type"]:checked') as HTMLInputElement;
+  const documentType = documentTypeInput?.value || 'auto';
+  
+  addLog('ドキュメントを生成しています...', 'info');
+  
+  generateDocumentSubmit.disabled = true;
+  generateDocumentSubmit.textContent = '生成中...';
   
   try {
     const requestBody: any = {
       sessionId,
-      prompt: prompt || '', // 空文字列でもOK
+      projectIds: selectedProjectIds,
+      documentType,
+      additionalPrompt: prompt,
     };
     
-    if (codeLanguage.value) {
-      requestBody.language = codeLanguage.value;
-    }
-    
-    if (codeFramework.value) {
-      requestBody.framework = codeFramework.value;
-    }
-    
-    if (createPR.checked) {
-      requestBody.createPR = {
-        enabled: true,
-        title: `自動生成: ${prompt.substring(0, 50) || '音声から'}`,
-        baseBranch: 'main',
-      };
-    }
-    
-    const response = await fetch(`${API_BASE_URL}/api/processing/generate-code`, {
+    const response = await fetch(`${API_BASE_URL}/api/processing/generate-document`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
@@ -505,32 +527,28 @@ async function generateCode() {
     
     if (response.ok) {
       const data = await response.json();
-      addLog(`✅ ${data.message}`, 'success');
-      addLog(`📂 保存先: ${data.storageDir}`, 'info');
-      
-      if (data.prUrl) {
-        addLog(`🔗 GitHub PR: ${data.prUrl}`, 'success');
-      }
+      addLog(`✅ ドキュメントを生成しました: ${data.title}`, 'success');
+      addLog(`📄 タイプ: ${data.type}`, 'info');
       
       // モーダルを閉じる
-      closeCodeModal();
+      closeDocumentModalFn();
       
       // 生成履歴ページへのリンクを表示
       setTimeout(() => {
-        if (confirm('コードが生成されました！\n生成履歴ページで確認しますか？')) {
-          window.open('/generated.html', '_blank');
+        if (confirm('ドキュメントが生成されました！\nドキュメント履歴ページで確認しますか？')) {
+          window.open('/documents.html', '_blank');
         }
       }, 500);
     } else {
       const errorData = await response.json();
-      addLog(`❌ コード生成に失敗しました: ${errorData.error}`, 'error');
+      alert(`❌ ドキュメント生成に失敗しました: ${errorData.message || errorData.error}`);
     }
   } catch (error) {
-    addLog(`❌ コード生成エラー: ${error}`, 'error');
+    alert(`❌ ドキュメント生成エラー: ${error}`);
     console.error(error);
   } finally {
-    generateCodeSubmit.disabled = false;
-    generateCodeSubmit.textContent = '🚀 生成する';
+    generateDocumentSubmit.disabled = false;
+    generateDocumentSubmit.textContent = '📝 生成する';
   }
 }
 
@@ -568,8 +586,7 @@ async function stopSession() {
   startButton.disabled = false;
   stopButton.disabled = true;
   captureButton.disabled = true;
-  generateSpecButton.disabled = true;
-  generateCodeButton.disabled = true;
+  generateDocumentButton.disabled = true;
   cameraSelect.disabled = false;
   microphoneSelect.disabled = false;
   
@@ -615,4 +632,6 @@ function addLog(message: string, level: 'info' | 'success' | 'warning' | 'error'
 
 // アプリケーション起動
 init();
+
+
 

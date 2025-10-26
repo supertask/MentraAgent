@@ -61,7 +61,12 @@ export class ModalGPUService {
           throw new Error(`Modal API Error: ${response.status} - ${errorText}`);
         }
         
-        return await response.json();
+        const result = await response.json() as {
+          title: string;
+          content: string;
+          model: string;
+        };
+        return result;
       } catch (error: any) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
@@ -71,6 +76,87 @@ export class ModalGPUService {
       }
     } catch (error) {
       logger.error('Modal仕様書生成エラー', error as Error);
+      throw error;
+    }
+  }
+
+  /**
+   * ドキュメント生成（仕様書・議事録・メモ）
+   */
+  async generateDocument(
+    context: {
+      transcriptions: Array<{ text: string; timestamp: Date; speaker?: string }>;
+      photos: Array<{ filename: string; storageKey: string; timestamp: Date }>;
+    },
+    documentType: 'specification' | 'minutes' | 'memo' | 'auto' = 'auto',
+    additionalPrompt: string = ''
+  ): Promise<{
+    title: string;
+    content: string;
+    type: string;
+    model: string;
+  }> {
+    try {
+      if (!this.apiUrl) {
+        throw new Error('Modal API URLが設定されていません');
+      }
+
+      logger.info('Modal GPUサーバーにドキュメント生成をリクエスト', {
+        transcriptionCount: context.transcriptions.length,
+        photoCount: context.photos.length,
+        documentType,
+      });
+
+      // Modal GPUサーバーのgenerate_documentエンドポイントを呼び出し
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10分
+
+      try {
+        const response = await fetch(`${this.apiUrl}/api/generate-document`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            context,
+            document_type: documentType,
+            additional_prompt: additionalPrompt,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Modal API Error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json() as {
+          title: string;
+          content: string;
+          type: string;
+          model: string;
+        };
+
+        logger.info('ドキュメント生成完了', {
+          model: result.model,
+          type: result.type,
+          title: result.title,
+        });
+
+        return result;
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error(
+            'Modal GPU server timeout (10 minutes). The server may be cold starting.'
+          );
+        }
+        throw error;
+      }
+    } catch (error) {
+      logger.error('Modalドキュメント生成エラー', error as Error);
       throw error;
     }
   }
@@ -90,6 +176,7 @@ export class ModalGPUService {
     files: Array<{ path: string; content: string; language: string }>;
     dependencies: string[];
     instructions: string;
+    summary?: any;
     model: string;
   }> {
     try {
@@ -125,7 +212,13 @@ export class ModalGPUService {
           throw new Error(`Modal API Error: ${response.status} - ${errorText}`);
         }
 
-        const result = await response.json();
+        const result = await response.json() as {
+          files: Array<{ path: string; content: string; language: string }>;
+          dependencies: string[];
+          instructions: string;
+          summary?: any;
+          model: string;
+        };
 
         logger.info('コード生成完了', {
           model: result.model,
@@ -174,7 +267,10 @@ export class ModalGPUService {
         throw new Error(`Modal API Error: ${response.status} - ${errorText}`);
       }
 
-      const result = await response.json();
+      const result = await response.json() as {
+        analysis: string;
+        model: string;
+      };
 
       logger.info('画像分析完了', {
         model: result.model,

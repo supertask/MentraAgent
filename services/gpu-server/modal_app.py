@@ -375,6 +375,94 @@ JSON形式で回答してください：
                 raise
 
     @modal.method()
+    def generate_document(
+        self,
+        context: Dict[str, Any],
+        document_type: str = "auto",  # 'specification' | 'minutes' | 'memo' | 'auto'
+        additional_prompt: str = "",
+    ) -> Dict[str, Any]:
+        """
+        ドキュメント生成（仕様書・議事録・メモ）
+
+        Args:
+            context: コンテキスト情報（文字起こし、画像など）
+            document_type: ドキュメントタイプ（'specification', 'minutes', 'memo', 'auto'）
+            additional_prompt: 追加のプロンプト（任意）
+
+        Returns:
+            生成されたドキュメント
+        """
+        print(f"📄 ドキュメント生成開始（タイプ: {document_type}、プライマリ: {self.primary_llm_provider}）")
+
+        # プロンプトの構築
+        prompt = self._build_document_prompt(context, document_type, additional_prompt)
+
+        try:
+            # プライマリLLMで試行
+            result = self._generate_text_with_provider(
+                prompt,
+                self.primary_llm_provider,
+                max_tokens=4096
+            )
+            
+            document_text = result["content"]
+            
+            # ドキュメントタイプを判定（autoの場合）
+            final_type = document_type
+            if document_type == "auto":
+                final_type = self._detect_document_type(document_text)
+            
+            output = {
+                "title": self._extract_title(document_text),
+                "content": document_text,
+                "type": final_type,
+                "model": result["model"],
+                "timestamp": datetime.now().isoformat(),
+            }
+
+            print(f"✅ ドキュメント生成完了（タイプ: {final_type}）")
+            return output
+
+        except Exception as e:
+            print(f"⚠️ プライマリLLM（{self.primary_llm_provider}）エラー: {e}")
+            
+            # フォールバックが有効な場合
+            if self.enable_llm_fallback:
+                fallback_provider = "anthropic" if self.primary_llm_provider == "openai" else "openai"
+                print(f"🔄 フォールバック: {fallback_provider}で再試行")
+                
+                try:
+                    result = self._generate_text_with_provider(
+                        prompt,
+                        fallback_provider,
+                        max_tokens=4096
+                    )
+                    
+                    document_text = result["content"]
+                    
+                    # ドキュメントタイプを判定（autoの場合）
+                    final_type = document_type
+                    if document_type == "auto":
+                        final_type = self._detect_document_type(document_text)
+                    
+                    output = {
+                        "title": self._extract_title(document_text),
+                        "content": document_text,
+                        "type": final_type,
+                        "model": result["model"],
+                        "timestamp": datetime.now().isoformat(),
+                    }
+
+                    print(f"✅ ドキュメント生成完了（フォールバック、タイプ: {final_type}）")
+                    return output
+                    
+                except Exception as fallback_error:
+                    print(f"❌ フォールバックLLMもエラー: {fallback_error}")
+                    raise
+            else:
+                raise
+
+    @modal.method()
     def generate_code(
         self,
         request: Dict[str, Any],
@@ -507,6 +595,97 @@ JSON形式で回答してください：
 ## 備考
 """
         return prompt
+
+    def _build_document_prompt(
+        self, 
+        context: Dict[str, Any], 
+        document_type: str,
+        additional_prompt: str = ""
+    ) -> str:
+        """ドキュメント生成用のプロンプトを構築"""
+        transcriptions = context.get("transcriptions", [])
+        photos = context.get("photos", [])
+
+        # ドキュメントタイプに応じたプロンプト
+        if document_type == "specification":
+            type_instruction = """技術仕様書を作成してください。
+要件、技術詳細、実装手順を含めてください。
+
+## 出力形式
+# タイトル
+## 概要
+## 機能要件
+## 非機能要件
+## 技術詳細
+## 実装手順
+## 備考"""
+        elif document_type == "minutes":
+            type_instruction = """議事録を作成してください。
+日時、参加者、議題、決定事項、アクションアイテムを含めてください。
+
+## 出力形式
+# タイトル
+## 会議情報
+- 日時: 
+- 参加者: 
+## 議題
+## 討議内容
+## 決定事項
+## アクションアイテム
+## 次回予定"""
+        elif document_type == "memo":
+            type_instruction = """メモを作成してください。
+重要なポイントを箇条書きで簡潔にまとめてください。
+
+## 出力形式
+# タイトル
+## 概要
+## 重要ポイント
+## 補足"""
+        else:  # auto
+            type_instruction = """内容に最も適した形式（仕様書・議事録・メモ）でドキュメントを作成してください。
+構造化されたMarkdown形式で出力してください。"""
+
+        prompt = f"""
+以下の記録から、{type_instruction}
+
+# 文字起こし
+"""
+        for trans in transcriptions[-30:]:  # 最新30件
+            speaker = trans.get("speaker", "不明")
+            text = trans.get("text", "")
+            prompt += f"\n[{speaker}] {text}"
+
+        if additional_prompt:
+            prompt += f"""
+
+# 追加の指示
+{additional_prompt}
+"""
+
+        prompt += """
+
+# 要求事項
+- 明確で構造化されたドキュメントを作成
+- Markdown形式で出力
+- 必要に応じて表や箇条書きを使用
+"""
+        return prompt
+
+    def _detect_document_type(self, text: str) -> str:
+        """ドキュメントタイプを自動判定"""
+        text_lower = text.lower()
+        
+        # 議事録のキーワード
+        if any(keyword in text_lower for keyword in ["議事録", "会議", "参加者", "決定事項", "アクションアイテム", "minutes"]):
+            return "minutes"
+        
+        # 仕様書のキーワード
+        if any(keyword in text_lower for keyword in ["仕様", "要件", "機能要件", "実装手順", "specification", "requirements"]):
+            return "specification"
+        
+        # デフォルトはメモ
+        return "memo"
 
     def _extract_title(self, text: str) -> str:
         """タイトルを抽出"""
@@ -1294,6 +1473,28 @@ def fastapi_app():
 
             gpu = RealworldAgentGPU()
             result = gpu.generate_code.remote(body)
+
+            return JSONResponse(content=result)
+
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)},
+            )
+
+    @web_app.post("/api/generate-document")
+    async def generate_document(request: Request):
+        """ドキュメント生成API（仕様書・議事録・メモ）"""
+        try:
+            body = await request.json()
+            context = body.get("context", {})
+            document_type = body.get("document_type", "auto")
+            additional_prompt = body.get("additional_prompt", "")
+
+            gpu = RealworldAgentGPU()
+            result = gpu.generate_document.remote(
+                context, document_type, additional_prompt
+            )
 
             return JSONResponse(content=result)
 

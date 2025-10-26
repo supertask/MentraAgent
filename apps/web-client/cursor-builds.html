@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursor Agent 生成履歴 - Realworld Agent</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .sessions-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .session-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .session-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .session-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+
+    .session-info h3 {
+      margin: 0 0 8px 0;
+      color: #2c3e50;
+      font-size: 1.3em;
+    }
+
+    .session-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: #f0f0f0;
+      border-radius: 16px;
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .status-badge {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9em;
+      text-transform: uppercase;
+    }
+
+    .status-planning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-building {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status-completed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .cursor-links {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .cursor-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cursor-link-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .github-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: #24292e;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .github-link-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(36, 41, 46, 0.4);
+    }
+
+    .plan-summary {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 0.95em;
+      line-height: 1.6;
+      color: #495057;
+    }
+
+    .loading-state,
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .empty-state-icon {
+      font-size: 4em;
+      margin-bottom: 20px;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="sessions-container">
+    <header class="page-header">
+      <div>
+        <a href="/cursor-agent.html" class="back-button">← Cursor Agentに戻る</a>
+        <h1>🤖 Cursor Agent 生成履歴</h1>
+        <p class="subtitle">過去に生成したコードとプランの一覧</p>
+      </div>
+      <button id="refresh-button" class="primary-button">🔄 更新</button>
+    </header>
+
+    <main>
+      <div id="loading-state" class="loading-state">
+        <div class="spinner"></div>
+        <p>セッションを読み込み中...</p>
+      </div>
+
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-state-icon">📭</div>
+        <h2>まだセッションがありません</h2>
+        <p>Cursor Agentでプランやコードを生成すると、ここに履歴が表示されます。</p>
+        <a href="/cursor-agent.html" class="primary-button" style="display: inline-block; margin-top: 20px;">
+          🚀 Cursor Agentを始める
+        </a>
+      </div>
+
+      <div id="sessions-list" class="hidden">
+        <!-- セッションカードがここに表示されます -->
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    const API_BASE_URL = 'http://localhost:3000';
+
+    async function loadSessions() {
+      const loadingState = document.getElementById('loading-state');
+      const emptyState = document.getElementById('empty-state');
+      const sessionsList = document.getElementById('sessions-list');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions`);
+        if (!response.ok) throw new Error('Failed to load sessions');
+
+        const data = await response.json();
+        const sessions = data.sessions;
+
+        loadingState.classList.add('hidden');
+
+        if (sessions.length === 0) {
+          emptyState.classList.remove('hidden');
+          sessionsList.classList.add('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+          sessionsList.classList.remove('hidden');
+          renderSessions(sessions);
+        }
+      } catch (error) {
+        console.error('Error loading sessions:', error);
+        loadingState.classList.add('hidden');
+        alert('セッションの読み込みに失敗しました');
+      }
+    }
+
+    function renderSessions(sessions) {
+      const sessionsList = document.getElementById('sessions-list');
+      sessionsList.innerHTML = '';
+
+      sessions.forEach(session => {
+        const card = createSessionCard(session);
+        sessionsList.appendChild(card);
+      });
+    }
+
+    function createSessionCard(session) {
+      const card = document.createElement('div');
+      card.className = 'session-card';
+
+      const project = session.project;
+      const statusClass = `status-${session.status}`;
+      const statusText = {
+        planning: 'プラン作成中',
+        building: 'ビルド中',
+        completed: '完了',
+        error: 'エラー'
+      }[session.status] || session.status;
+
+      const createdAt = new Date(session.createdAt).toLocaleString('ja-JP');
+      const updatedAt = new Date(session.updatedAt).toLocaleString('ja-JP');
+
+      let planSummary = '';
+      if (session.plan && session.plan.summary) {
+        planSummary = `
+          <div class="plan-summary">
+            <strong>📋 プラン概要:</strong><br>
+            ${escapeHtml(session.plan.summary)}
+          </div>
+        `;
+      }
+
+      let cursorLinks = '<div class="cursor-links">';
+      
+      // 詳細ページへのリンク
+      cursorLinks += `
+        <a href="/cursor-build-detail.html?id=${encodeURIComponent(session.id)}" class="cursor-link-btn" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+          📖 詳細を見る
+        </a>
+      `;
+      
+      if (session.cursorUrl) {
+        cursorLinks += `
+          <a href="${escapeHtml(session.cursorUrl)}" target="_blank" class="cursor-link-btn">
+            🎨 Cursor UIで開く
+          </a>
+        `;
+      }
+
+      if (session.branchName && project?.githubRepo) {
+        const githubUrl = `${project.githubRepo}/tree/${session.branchName}`;
+        cursorLinks += `
+          <a href="${githubUrl}" target="_blank" class="github-link-btn">
+            🔗 GitHubブランチを見る
+          </a>
+        `;
+      }
+
+      cursorLinks += '</div>';
+
+      card.innerHTML = `
+        <div class="session-header">
+          <div class="session-info">
+            <h3>📁 ${project ? escapeHtml(project.name) : '不明なプロジェクト'}</h3>
+            <div class="session-meta">
+              <span class="meta-badge">🆔 ${session.id.substring(0, 8)}...</span>
+              <span class="meta-badge">📄 ${session.documentIds.length}件の仕様書</span>
+              <span class="meta-badge">🕒 ${createdAt}</span>
+            </div>
+          </div>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>
+
+        ${planSummary}
+
+        ${session.branchName ? `
+          <div style="margin-top: 12px; padding: 8px 12px; background: #e7f3ff; border-radius: 6px; font-size: 0.9em;">
+            <strong>🌿 ブランチ:</strong> <code>${escapeHtml(session.branchName)}</code>
+          </div>
+        ` : ''}
+
+        ${cursorLinks}
+
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85em; color: #6c757d;">
+          最終更新: ${updatedAt}
+        </div>
+      `;
+
+      return card;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // イベントリスナー
+    document.getElementById('refresh-button').addEventListener('click', loadSessions);
+
+    // 初期ロード
+    loadSessions();
+  </script>
+</body>
+</html>
+

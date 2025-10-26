@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ドキュメント履歴 - Realworld Agent</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.0.0/marked.min.js"></script>
+  <style>
+    .back-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background: var(--surface-color);
+      color: var(--text-primary);
+      text-decoration: none;
+      border-radius: 6px;
+      margin-bottom: 30px;
+      transition: all 0.2s;
+    }
+
+    .back-button:hover {
+      background: var(--primary-color);
+    }
+
+    .project-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .project-tab {
+      padding: 12px 24px;
+      background: var(--surface-color);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .project-tab:hover {
+      border-color: var(--primary-color);
+      transform: translateY(-2px);
+    }
+
+    .project-tab.active {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: white;
+    }
+
+    .project-section {
+      margin-bottom: 50px;
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .project-title {
+      font-size: 1.8rem;
+      color: var(--text-primary);
+    }
+
+    .document-count {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .document-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
+
+    .document-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .document-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-color);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .document-type-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .document-type-badge.specification {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .document-type-badge.minutes {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white;
+    }
+
+    .document-type-badge.memo {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+    }
+
+    .document-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    .document-summary {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .document-meta {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .document-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px 16px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .action-btn.secondary {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .action-btn.secondary:hover {
+      background: var(--border-color);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .modal-content {
+      background: var(--surface-color);
+      border-radius: 12px;
+      padding: 0;
+      max-width: 900px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+
+    .close-button {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 2rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .close-button:hover {
+      background: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .markdown-body {
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .markdown-body h1 {
+      font-size: 2em;
+      font-weight: 700;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid var(--border-color);
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+
+    .markdown-body h2 {
+      font-size: 1.5em;
+      font-weight: 700;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid var(--border-color);
+      margin-top: 24px;
+      margin-bottom: 16px;
+    }
+
+    .markdown-body h3 {
+      font-size: 1.25em;
+      font-weight: 700;
+      margin-top: 24px;
+      margin-bottom: 16px;
+    }
+
+    .markdown-body p {
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+    }
+
+    .markdown-body ul, .markdown-body ol {
+      padding-left: 2em;
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+    }
+
+    .markdown-body li {
+      margin-bottom: 8px;
+    }
+
+    .markdown-body code {
+      background: var(--bg-color);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9em;
+      color: var(--accent-color);
+    }
+
+    .markdown-body pre {
+      background: var(--bg-color);
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-color);
+    }
+
+    .markdown-body pre code {
+      background: transparent;
+      padding: 0;
+      color: var(--text-primary);
+    }
+
+    .markdown-body strong {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; gap: 10px;">
+          <a href="/" class="back-button">← トップに戻る</a>
+          <a href="/projects.html" class="back-button">📁 プロジェクト管理</a>
+        </div>
+        <a href="/cursor-agent.html" class="back-button" style="background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color: white;">
+          🤖 Cursor Agentで実装
+        </a>
+      </div>
+      <h1>📂 プロジェクト & ドキュメント履歴</h1>
+      <p class="subtitle">プロジェクトごとに整理されたドキュメント</p>
+    </header>
+
+    <main>
+      <div id="loading" class="loading">
+        <p>読み込み中...</p>
+      </div>
+
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-state-icon">📭</div>
+        <h2>まだドキュメントが生成されていません</h2>
+        <p>Webカメラまたは音声からドキュメントを生成してみましょう</p>
+        <a href="/webcam.html" class="action-btn" style="display: inline-block; margin-top: 20px;">Webカメラで開始</a>
+      </div>
+
+      <div id="content" class="hidden">
+        <div class="project-tabs" id="project-tabs"></div>
+        <div id="documents-container"></div>
+      </div>
+    </main>
+
+    <!-- 詳細モーダル -->
+    <div id="detail-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title"></h2>
+          <button id="close-modal" class="close-button">&times;</button>
+        </div>
+        <div id="modal-body" class="modal-body">
+          <!-- 詳細がここに表示されます -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    const API_BASE_URL = 'http://localhost:3000';
+    
+    let projects = [];
+    let documents = [];
+    let activeProjectId = 'all';
+    
+    async function loadData() {
+      const loading = document.getElementById('loading');
+      const emptyState = document.getElementById('empty-state');
+      const content = document.getElementById('content');
+      
+      try {
+        // プロジェクト一覧取得
+        const projectsRes = await fetch(`${API_BASE_URL}/api/projects`);
+        if (!projectsRes.ok) throw new Error('Failed to load projects');
+        const projectsData = await projectsRes.json();
+        projects = projectsData.projects;
+        
+        // 全ドキュメント取得（プロジェクトごとに取得）
+        const documentPromises = projects.map(project =>
+          fetch(`${API_BASE_URL}/api/projects/${project.id}/documents`)
+            .then(res => res.json())
+            .then(data => ({ projectId: project.id, documents: data.documents }))
+        );
+        
+        const projectDocuments = await Promise.all(documentPromises);
+        
+        // プロジェクトごとにドキュメントを整理
+        documents = [];
+        projectDocuments.forEach(pd => {
+          pd.documents.forEach(doc => {
+            documents.push({
+              ...doc,
+              projectId: pd.projectId
+            });
+          });
+        });
+        
+        loading.classList.add('hidden');
+        
+        if (documents.length === 0) {
+          emptyState.classList.remove('hidden');
+        } else {
+          content.classList.remove('hidden');
+          renderTabs();
+          renderDocuments();
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        loading.classList.add('hidden');
+        emptyState.innerHTML = `
+          <div class="empty-state-icon">❌</div>
+          <h2>読み込みエラー</h2>
+          <p>APIサーバーが起動していることを確認してください</p>
+          <button onclick="location.reload()" class="action-btn" style="display: inline-block; margin-top: 20px;">
+            🔄 再読み込み
+          </button>
+        `;
+        emptyState.classList.remove('hidden');
+      }
+    }
+    
+    function renderTabs() {
+      const tabsContainer = document.getElementById('project-tabs');
+      tabsContainer.innerHTML = '';
+      
+      // 「すべて」タブ
+      const allTab = document.createElement('div');
+      allTab.className = `project-tab ${activeProjectId === 'all' ? 'active' : ''}`;
+      allTab.textContent = `📁 すべて (${documents.length})`;
+      allTab.onclick = () => {
+        activeProjectId = 'all';
+        renderTabs();
+        renderDocuments();
+      };
+      tabsContainer.appendChild(allTab);
+      
+      // 各プロジェクトタブ
+      projects.forEach(project => {
+        const count = documents.filter(d => d.projectId === project.id).length;
+        if (count === 0) return; // ドキュメントがないプロジェクトは表示しない
+        
+        const tab = document.createElement('div');
+        tab.className = `project-tab ${activeProjectId === project.id ? 'active' : ''}`;
+        tab.textContent = `📁 ${project.name} (${count})`;
+        tab.onclick = () => {
+          activeProjectId = project.id;
+          renderTabs();
+          renderDocuments();
+        };
+        tabsContainer.appendChild(tab);
+      });
+    }
+    
+    function renderDocuments() {
+      const container = document.getElementById('documents-container');
+      container.innerHTML = '';
+      
+      // フィルタリング
+      const filteredDocs = activeProjectId === 'all' 
+        ? documents 
+        : documents.filter(d => d.projectId === activeProjectId);
+      
+      if (filteredDocs.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>このプロジェクトにはドキュメントがありません</p></div>';
+        return;
+      }
+      
+      // プロジェクトごとにグループ化
+      const groupedDocs = {};
+      filteredDocs.forEach(doc => {
+        if (!groupedDocs[doc.projectId]) {
+          groupedDocs[doc.projectId] = [];
+        }
+        groupedDocs[doc.projectId].push(doc);
+      });
+      
+      // 各プロジェクトセクションをレンダリング
+      Object.keys(groupedDocs).forEach(projectId => {
+        const project = projects.find(p => p.id === projectId);
+        const projectDocs = groupedDocs[projectId];
+        
+        const section = document.createElement('div');
+        section.className = 'project-section';
+        
+        const header = document.createElement('div');
+        header.className = 'project-header';
+        header.innerHTML = `
+          <h2 class="project-title">📁 ${project.name}</h2>
+          <span class="document-count">${projectDocs.length}件のドキュメント</span>
+        `;
+        section.appendChild(header);
+        
+        const grid = document.createElement('div');
+        grid.className = 'document-grid';
+        
+        projectDocs.forEach(doc => {
+          const card = document.createElement('div');
+          card.className = 'document-card';
+          
+          const typeLabel = {
+            specification: '仕様書',
+            minutes: '議事録',
+            memo: 'メモ'
+          }[doc.type] || doc.type;
+          
+          const createdAt = new Date(doc.createdAt);
+          const dateStr = `${createdAt.getFullYear()}/${String(createdAt.getMonth() + 1).padStart(2, '0')}/${String(createdAt.getDate()).padStart(2, '0')} ${String(createdAt.getHours()).padStart(2, '0')}:${String(createdAt.getMinutes()).padStart(2, '0')}`;
+          
+          card.innerHTML = `
+            <span class="document-type-badge ${doc.type}">${typeLabel}</span>
+            <div class="document-title">${doc.title}</div>
+            <div class="document-summary">${doc.summary}</div>
+            <div class="document-meta">
+              <span>📅 ${dateStr}</span>
+            </div>
+            <div class="document-actions">
+              <button class="action-btn" onclick="viewDetails('${doc.id}')">
+                📖 詳細を見る
+              </button>
+              <button class="action-btn secondary" onclick="window.location.href='/cursor-agent.html'">
+                🤖 Cursor Agentで実装
+              </button>
+            </div>
+          `;
+          
+          grid.appendChild(card);
+        });
+        
+        section.appendChild(grid);
+        container.appendChild(section);
+      });
+    }
+    
+    window.viewDetails = async function(documentId) {
+      try {
+        const doc = documents.find(d => d.id === documentId);
+        if (!doc) throw new Error('Document not found');
+        
+        const modal = document.getElementById('detail-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        
+        modalTitle.textContent = doc.title;
+        
+        const markdown = doc.content.markdown || '';
+        const html = marked.parse(markdown);
+        
+        modalBody.innerHTML = `
+          <div class="markdown-body">
+            ${html}
+          </div>
+        `;
+        
+        modal.classList.remove('hidden');
+      } catch (error) {
+        console.error('Error viewing details:', error);
+        alert('詳細の読み込みに失敗しました');
+      }
+    };
+    
+    document.getElementById('close-modal').addEventListener('click', () => {
+      document.getElementById('detail-modal').classList.add('hidden');
+    });
+    
+    document.getElementById('detail-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'detail-modal') {
+        document.getElementById('detail-modal').classList.add('hidden');
+      }
+    });
+    
+    // 初期化
+    loadData();
+  </script>
+</body>
+</html>
+

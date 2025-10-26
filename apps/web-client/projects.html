@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プロジェクト管理 - Realworld Agent</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="page-header">
+      <div class="header-left">
+        <a href="/" class="back-button">← ホームに戻る</a>
+        <h1>📁 プロジェクト管理</h1>
+      </div>
+      <button id="new-project-button" class="primary-button">
+        ➕ 新規プロジェクト
+      </button>
+    </header>
+
+    <div class="projects-container">
+      <div id="projects-grid" class="projects-grid">
+        <!-- プロジェクトカードがここに動的に追加されます -->
+      </div>
+      
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">📂</div>
+        <h2>プロジェクトがありません</h2>
+        <p>新しいプロジェクトを作成して始めましょう</p>
+        <button id="empty-new-project-button" class="primary-button">
+          ➕ 新規プロジェクト
+        </button>
+      </div>
+
+      <div id="loading-state" class="loading-state">
+        <div class="spinner"></div>
+        <p>読み込み中...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- プロジェクト作成・編集モーダル -->
+  <div id="project-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">📁 新規プロジェクト</h2>
+        <button id="close-modal" class="close-button">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="project-id">
+        
+        <div class="form-group">
+          <label for="project-name">
+            プロジェクト名 <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="project-name" 
+            placeholder="例: ECサイトリニューアル"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="github-repo">
+            GitHubリポジトリURL
+            <span class="help-text">（Cursor Agent用 - 任意）</span>
+          </label>
+          <input 
+            type="text" 
+            id="github-repo" 
+            placeholder="例: https://github.com/username/repository"
+          />
+          <p class="form-help">
+            ⓘ Cursor Background Agent APIで実際のコード生成をする場合は必須です
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label for="github-branch">ブランチ名</label>
+          <input 
+            type="text" 
+            id="github-branch" 
+            placeholder="デフォルト: main"
+            value="main"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="github-subdirectory">サブディレクトリ（任意）</label>
+          <input 
+            type="text" 
+            id="github-subdirectory" 
+            placeholder="例: /frontend, /packages/core （空欄でルート）"
+          />
+          <small style="color: #6c757d; font-size: 0.85em;">
+            💡 リポジトリ内の特定フォルダを指定できます。Cursor Agentがそのフォルダ内でコードを生成します。
+          </small>
+        </div>
+
+        <div class="modal-actions">
+          <button id="save-project-button" class="primary-button">
+            💾 保存
+          </button>
+          <button id="cancel-modal" class="secondary-button">
+            キャンセル
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 削除確認モーダル -->
+  <div id="delete-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🗑️ プロジェクト削除</h2>
+        <button id="close-delete-modal" class="close-button">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="delete-message" class="delete-message">
+          このプロジェクトを削除しますか？
+        </p>
+        <p class="warning-message">
+          ⚠️ この操作は取り消せません。プロジェクトに関連付けられたドキュメントは削除されませんが、関連付けが解除されます。
+        </p>
+        <div class="modal-actions">
+          <button id="confirm-delete-button" class="danger-button">
+            🗑️ 削除する
+          </button>
+          <button id="cancel-delete-modal" class="secondary-button">
+            キャンセル
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/projects.ts"></script>
+</body>
+</html>
+

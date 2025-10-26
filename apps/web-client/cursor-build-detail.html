@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生成コード詳細 - Realworld Agent</title>
+  <link rel="stylesheet" href="/styles.css">
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/marked.min.js"></script>
+  <!-- Mermaid.js for diagram rendering -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ 
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+    });
+    window.mermaid = mermaid;
+  </script>
+  <style>
+    .detail-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .page-header {
+      margin-bottom: 30px;
+    }
+
+    .back-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background: var(--surface-color);
+      color: var(--text-primary);
+      text-decoration: none;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      transition: all 0.2s;
+    }
+
+    .back-button:hover {
+      background: var(--primary-color);
+    }
+
+    .session-header-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .session-title {
+      font-size: 1.8em;
+      margin: 0 0 16px 0;
+    }
+
+    .session-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .meta-item {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 12px 16px;
+      border-radius: 8px;
+    }
+
+    .meta-label {
+      font-size: 0.85em;
+      opacity: 0.9;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .meta-value {
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9em;
+      text-transform: uppercase;
+    }
+
+    .status-completed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-planning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-building {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .action-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: white;
+      color: #667eea;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .action-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .action-button.github {
+      background: #24292e;
+      color: white;
+    }
+
+    .content-card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .content-card h2 {
+      color: #2c3e50;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .readme-content {
+      line-height: 1.8;
+      color: #333;
+    }
+
+    .readme-content h1,
+    .readme-content h2,
+    .readme-content h3,
+    .readme-content h4 {
+      margin-top: 24px;
+      margin-bottom: 12px;
+      color: #2c3e50;
+    }
+
+    .readme-content h1 {
+      font-size: 2em;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 12px;
+    }
+
+    .readme-content h2 {
+      font-size: 1.6em;
+      border-bottom: 1px solid #e9ecef;
+      padding-bottom: 8px;
+    }
+
+    .readme-content code {
+      background: #f8f9fa;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #e83e8c;
+    }
+
+    .readme-content pre {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid #e9ecef;
+    }
+
+    .readme-content pre code {
+      background: none;
+      padding: 0;
+      color: #333;
+    }
+
+    .readme-content ul,
+    .readme-content ol {
+      padding-left: 24px;
+      margin: 12px 0;
+    }
+
+    .readme-content li {
+      margin: 8px 0;
+    }
+
+    .readme-content blockquote {
+      border-left: 4px solid #667eea;
+      padding-left: 16px;
+      margin: 16px 0;
+      color: #666;
+      font-style: italic;
+    }
+
+    .readme-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+
+    .readme-content th,
+    .readme-content td {
+      border: 1px solid #e9ecef;
+      padding: 10px;
+      text-align: left;
+    }
+
+    .readme-content th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+
+    .readme-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin: 16px 0;
+    }
+
+    .mermaid {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .spec-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .spec-item {
+      background: #f8f9fa;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .spec-title {
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 4px;
+    }
+
+    .spec-type {
+      font-size: 0.85em;
+      color: #6c757d;
+      text-transform: uppercase;
+    }
+
+    .loading-state,
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .no-readme {
+      text-align: center;
+      padding: 40px 20px;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+  <div class="detail-container">
+    <div class="page-header">
+      <a href="/cursor-builds.html" class="back-button">← 生成履歴に戻る</a>
+    </div>
+
+    <div id="loading-state" class="loading-state">
+      <div class="spinner"></div>
+      <p>セッション情報を読み込み中...</p>
+    </div>
+
+    <div id="error-state" class="error-state hidden">
+      <div style="font-size: 3em; margin-bottom: 20px;">❌</div>
+      <h2>エラーが発生しました</h2>
+      <p id="error-message"></p>
+      <a href="/cursor-builds.html" class="action-button" style="margin-top: 20px;">
+        生成履歴に戻る
+      </a>
+    </div>
+
+    <div id="content" class="hidden">
+      <!-- セッションヘッダー -->
+      <div class="session-header-card">
+        <h1 class="session-title" id="session-title">🤖 生成コード</h1>
+        <div id="session-status"></div>
+        
+        <div class="session-meta-grid" id="session-meta">
+          <!-- メタ情報がここに表示されます -->
+        </div>
+
+        <div class="action-buttons" id="action-buttons">
+          <!-- アクションボタンがここに表示されます -->
+        </div>
+      </div>
+
+      <!-- 仕様書情報 -->
+      <div class="content-card" id="specs-card">
+        <h2>📄 使用した仕様書</h2>
+        <ul class="spec-list" id="specs-list">
+          <!-- 仕様書がここに表示されます -->
+        </ul>
+      </div>
+
+      <!-- README -->
+      <div class="content-card" id="readme-card">
+        <h2>📖 README</h2>
+        <div id="readme-content" class="readme-content">
+          <!-- READMEがここに表示されます -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    const API_BASE_URL = 'http://localhost:3000';
+    
+    // URLパラメータからsessionIdを取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('id');
+
+    if (!sessionId) {
+      showError('セッションIDが指定されていません');
+    } else {
+      loadSessionDetail(sessionId);
+    }
+
+    async function loadSessionDetail(sessionId) {
+      const loadingState = document.getElementById('loading-state');
+      const errorState = document.getElementById('error-state');
+      const content = document.getElementById('content');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${sessionId}`);
+        if (!response.ok) throw new Error('セッション情報の取得に失敗しました');
+
+        const data = await response.json();
+        const session = data.session;
+
+        loadingState.classList.add('hidden');
+        content.classList.remove('hidden');
+
+        renderSessionDetail(session);
+      } catch (error) {
+        console.error('Error loading session detail:', error);
+        loadingState.classList.add('hidden');
+        showError(error.message);
+      }
+    }
+
+    function renderSessionDetail(session) {
+      const project = session.project;
+      
+      // タイトル
+      document.getElementById('session-title').textContent = 
+        `🤖 ${project ? project.name : '不明なプロジェクト'}`;
+
+      // ステータス
+      const statusBadge = document.createElement('span');
+      statusBadge.className = `status-badge status-${session.status}`;
+      statusBadge.textContent = {
+        planning: 'プラン作成中',
+        building: 'ビルド中',
+        completed: '完了',
+        error: 'エラー'
+      }[session.status] || session.status;
+      document.getElementById('session-status').appendChild(statusBadge);
+
+      // メタ情報
+      const metaGrid = document.getElementById('session-meta');
+      const createdAt = new Date(session.createdAt).toLocaleString('ja-JP');
+      const updatedAt = new Date(session.updatedAt).toLocaleString('ja-JP');
+
+      metaGrid.innerHTML = `
+        <div class="meta-item">
+          <span class="meta-label">作成日時</span>
+          <span class="meta-value">${createdAt}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">最終更新</span>
+          <span class="meta-value">${updatedAt}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">セッションID</span>
+          <span class="meta-value" style="font-size: 0.85em;">${session.id.substring(0, 12)}...</span>
+        </div>
+      `;
+
+      // アクションボタン
+      const actionButtons = document.getElementById('action-buttons');
+      actionButtons.innerHTML = '';
+
+      if (session.cursorUrl) {
+        const cursorBtn = document.createElement('a');
+        cursorBtn.href = session.cursorUrl;
+        cursorBtn.target = '_blank';
+        cursorBtn.className = 'action-button';
+        cursorBtn.innerHTML = '🎨 Cursor UIで開く';
+        actionButtons.appendChild(cursorBtn);
+      }
+
+      if (session.branchName && project?.githubRepo) {
+        const githubBtn = document.createElement('a');
+        githubBtn.href = `${project.githubRepo}/tree/${session.branchName}`;
+        githubBtn.target = '_blank';
+        githubBtn.className = 'action-button github';
+        githubBtn.innerHTML = '🔗 GitHubブランチを見る';
+        actionButtons.appendChild(githubBtn);
+      }
+
+      // 仕様書リスト
+      const specsList = document.getElementById('specs-list');
+      if (session.documents && session.documents.length > 0) {
+        session.documents.forEach(doc => {
+          const li = document.createElement('li');
+          li.className = 'spec-item';
+          li.innerHTML = `
+            <div class="spec-title">${escapeHtml(doc.title)}</div>
+            <div class="spec-type">${getDocumentTypeLabel(doc.type)}</div>
+          `;
+          specsList.appendChild(li);
+        });
+      } else {
+        specsList.innerHTML = '<li class="spec-item">仕様書がありません</li>';
+      }
+
+      // README
+      const readmeContent = document.getElementById('readme-content');
+      if (session.readme) {
+        // Marked.jsでマークダウンをHTMLに変換
+        const html = marked.parse(session.readme);
+        readmeContent.innerHTML = html;
+        
+        // Mermaid図をレンダリング
+        setTimeout(() => {
+          const mermaidElements = readmeContent.querySelectorAll('code.language-mermaid');
+          mermaidElements.forEach((element, index) => {
+            const mermaidCode = element.textContent;
+            const mermaidDiv = document.createElement('div');
+            mermaidDiv.className = 'mermaid';
+            mermaidDiv.textContent = mermaidCode;
+            element.parentElement.replaceWith(mermaidDiv);
+          });
+
+          // Mermaid初期化
+          if (window.mermaid && document.querySelectorAll('.mermaid').length > 0) {
+            window.mermaid.run();
+          }
+        }, 100);
+      } else {
+        readmeContent.innerHTML = '<div class="no-readme">📭 READMEファイルがありません</div>';
+      }
+    }
+
+    function getDocumentTypeLabel(type) {
+      const labels = {
+        specification: '仕様書',
+        minutes: '議事録',
+        memo: 'メモ'
+      };
+      return labels[type] || type;
+    }
+
+    function showError(message) {
+      document.getElementById('error-state').classList.remove('hidden');
+      document.getElementById('error-message').textContent = message;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
+
