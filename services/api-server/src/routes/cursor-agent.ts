@@ -167,14 +167,24 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
         status: 'planning',
       });
 
+      // 初期メッセージをチャット履歴に追加
+      await sessionRepo.addChatMessage(session.id, {
+        role: 'assistant',
+        content: `こんにちは！${project.name}プロジェクトのコード生成をサポートします。`,
+        timestamp: new Date().toISOString(),
+      });
+
       logger.info('Cursor Agentセッションを作成しました', {
         sessionId: session.id,
         projectId,
         documentCount: documentIds.length,
       });
 
+      // セッションを再取得して最新のチャット履歴を含める
+      const updatedSession = await sessionRepo.findById(session.id);
+
       return {
-        session,
+        session: updatedSession,
       };
     } catch (error) {
       logger.error('セッション作成エラー', error as Error);
@@ -239,8 +249,15 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
         plan,
         plan.cursorUrl,
         plan.branchName,
-        undefined // cursorAgentId (planにはIDが含まれていないため)
+        plan.cursorAgentId
       );
+
+      // チャット履歴にプラン作成メッセージを追加
+      await sessionRepo.addChatMessage(sessionId, {
+        role: 'assistant',
+        content: `✅ プランを作成しました！\n\n${plan.summary || ''}`,
+        timestamp: new Date().toISOString(),
+      });
 
       logger.info('プラン生成完了', {
         sessionId,
@@ -378,6 +395,13 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
         undefined // cursorAgentId
       );
 
+      // チャット履歴にビルド完了メッセージを追加
+      await sessionRepo.addChatMessage(sessionId, {
+        role: 'assistant',
+        content: `✅ ビルドが完了しました！\n\n${result.files.length}個のファイルを生成しました。`,
+        timestamp: new Date().toISOString(),
+      });
+
       logger.info('ビルド完了', {
         sessionId,
         buildId,
@@ -447,6 +471,12 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
       const response = await cursorAgent.sendChatMessage(sessionId, message, {
         specifications,
         plan: session.plan,
+        cursorAgentId: session.cursorAgentId || undefined,
+      });
+
+      logger.info('チャットメッセージ送信', {
+        sessionId,
+        hasCursorAgentId: !!session.cursorAgentId,
       });
 
       // チャット履歴を保存

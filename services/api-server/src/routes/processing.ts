@@ -262,6 +262,37 @@ export const processingRouter: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // ドキュメント一覧取得
+  fastify.get('/documents', async (request, reply) => {
+    try {
+      const { projectId } = request.query as { projectId?: string };
+
+      let documents;
+      if (projectId) {
+        // プロジェクトごとのドキュメント取得
+        documents = await documentRepo.findByProjectId(projectId);
+      } else {
+        // 全ドキュメント取得
+        documents = await documentRepo.findAll();
+      }
+
+      logger.info('ドキュメント一覧取得', {
+        projectId: projectId || 'all',
+        count: documents.length,
+      });
+
+      return {
+        documents,
+      };
+    } catch (error) {
+      logger.error('ドキュメント一覧取得エラー', error as Error);
+      return reply.status(500).send({
+        error: 'Failed to fetch documents',
+        message: (error as Error).message,
+      });
+    }
+  });
+
   // コード生成
   fastify.post('/generate-code', async (request, reply) => {
     try {

@@ -29,8 +29,9 @@ export interface CursorPlan {
   }>;
   estimatedTime: string;
   summary: string;
-  branchName?: string; // Cursor APIが作成したGitHubブランチ名
-  cursorUrl?: string;  // Cursor UIでの表示URL
+  branchName?: string;     // Cursor APIが作成したGitHubブランチ名
+  cursorUrl?: string;      // Cursor UIでの表示URL
+  cursorAgentId?: string;  // Cursor Agent ID
 }
 
 export interface CursorBuildRequest {
@@ -182,12 +183,14 @@ export class CursorAgentService {
     context: {
       specifications?: string[];
       plan?: CursorPlan;
+      cursorAgentId?: string;
     }
   ): Promise<{ response: string }> {
     try {
       logger.info('Cursor Agentチャットメッセージ送信', {
         sessionId,
         messageLength: message.length,
+        hasCursorAgentId: !!context.cursorAgentId,
       });
 
       if (!this.apiKey) {
@@ -196,8 +199,14 @@ export class CursorAgentService {
         return { response };
       }
 
+      if (!context.cursorAgentId) {
+        logger.warn('Cursor Agent IDが見つかりません。モック実装を使用します');
+        const response = await this.mockChatResponse(message, context);
+        return { response };
+      }
+
       // 実際のCursor APIを呼び出し
-      const response = await this.callCursorChatAPI(sessionId, message, context);
+      const response = await this.callCursorChatAPI(context.cursorAgentId, message, context);
 
       return { response };
     } catch (error) {
@@ -281,8 +290,8 @@ ${JSON.stringify(request.plan, null, 2)}
     const requestBody: any = {
       prompt: {
         text: mode === 'plan'
-          ? `以下の仕様書に基づいて実装プランをJSON形式で生成してください。\n\n${prompt}`
-          : `以下のプランに基づいてコードを生成してください。\n\n${prompt}${plan ? '\n\nプラン:\n' + JSON.stringify(plan, null, 2) : ''}`
+          ? `【重要】必ず日本語で回答してください。Please respond in Japanese.\n\n以下の仕様書に基づいて実装プランをJSON形式で生成してください。\n\n${prompt}`
+          : `【重要】必ず日本語で回答してください。Please respond in Japanese.\n\n以下のプランに基づいてコードを生成してください。\n\n${prompt}${plan ? '\n\nプラン:\n' + JSON.stringify(plan, null, 2) : ''}`
       }
     };
 
@@ -456,7 +465,7 @@ ${JSON.stringify(request.plan, null, 2)}
    * Cursor Chat APIを呼び出し (フォローアップメッセージ)
    */
   private async callCursorChatAPI(
-    sessionId: string,
+    cursorAgentId: string,
     message: string,
     context: any
   ): Promise<string> {
@@ -466,7 +475,7 @@ ${JSON.stringify(request.plan, null, 2)}
     };
 
     // コンテキストを含むメッセージを構築
-    let fullMessage = message;
+    let fullMessage = `【重要】必ず日本語で回答してください。Please respond in Japanese.\n\n${message}`;
     if (context.specifications) {
       fullMessage += `\n\n関連する仕様書:\n${context.specifications.join('\n\n---\n\n')}`;
     }
@@ -481,8 +490,13 @@ ${JSON.stringify(request.plan, null, 2)}
     };
 
     try {
-      // セッションIDをエージェントIDとして使用し、フォローアップを送信
-      const response = await fetch(`${this.apiUrl}/agents/${sessionId}/followup`, {
+      logger.info('Cursor Agent フォローアップ送信', {
+        cursorAgentId,
+        messageLength: fullMessage.length,
+      });
+
+      // Cursor Agent IDを使用してフォローアップを送信
+      const response = await fetch(`${this.apiUrl}/agents/${cursorAgentId}/followup`, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
@@ -490,17 +504,71 @@ ${JSON.stringify(request.plan, null, 2)}
 
       if (!response.ok) {
         const errorText = await response.text();
+        logger.error('Cursor API フォローアップエラー', {
+          status: response.status,
+          error: errorText,
+        });
         throw new Error(
           `Cursor API Error: ${response.status} - ${errorText}`
         );
       }
 
-      const data = (await response.json()) as any;
+      const followupData = (await response.json()) as any;
+      logger.info('フォローアップ送信成功', { 
+        cursorAgentId,
+        followupResponse: JSON.stringify(followupData, null, 2)
+      });
       
       // フォローアップの結果を待機
-      const result = await this.waitForAgentCompletion(sessionId, 'plan');
+      const result = await this.waitForAgentCompletion(cursorAgentId, 'plan');
       
-      return result.summary || 'フォローアップが完了しました';
+      // 完了後のエージェント情報を詳細にログ出力
+      logger.info('フォローアップ完了後のエージェント情報', {
+        cursorAgentId,
+        fullAgentData: JSON.stringify(result, null, 2),
+        summaryLength: result.summary?.length || 0,
+        hasSummary: !!result.summary,
+        hasMessages: !!(result as any).messages,
+        hasResponse: !!(result as any).response,
+        allKeys: Object.keys(result)
+      });
+      
+      // チャットレスポンスの場合は、適切なフィールドから応答を抽出
+      // Cursor APIの実際の構造に応じて、複数のフィールドを試す
+      let responseText = '';
+      
+      // 1. messagesフィールドをチェック（最新のメッセージを取得）
+      if ((result as any).messages && Array.isArray((result as any).messages)) {
+        const messages = (result as any).messages;
+        if (messages.length > 0) {
+          const lastMessage = messages[messages.length - 1];
+          responseText = lastMessage.content || lastMessage.text || '';
+        }
+      }
+      
+      // 2. responseフィールドをチェック
+      if (!responseText && (result as any).response) {
+        responseText = (result as any).response;
+      }
+      
+      // 3. summaryフィールドをチェック（ただし、短い場合のみ）
+      if (!responseText && result.summary && result.summary.length < 1000) {
+        responseText = result.summary;
+      }
+      
+      // 4. デフォルトメッセージ
+      if (!responseText) {
+        responseText = 'ご質問を承りました。詳細な変更内容はGitHubブランチに反映されます。\n\n' +
+                      `Cursor UI: ${result.cursorUrl || 'https://cursor.com/agents?id=' + cursorAgentId}`;
+      }
+      
+      logger.info('抽出された応答テキスト', {
+        cursorAgentId,
+        responseLength: responseText.length,
+        responsePreview: responseText.substring(0, 200)
+      });
+      
+      return responseText;
     } catch (error) {
       logger.error('Cursor Chat API呼び出しエラー', error as Error);
       throw error;
@@ -551,12 +619,14 @@ ${JSON.stringify(request.plan, null, 2)}
         summary: planDescription,
         branchName: target.branchName, // 生成されたブランチ名
         cursorUrl: target.url, // Cursor UIでのURL
+        cursorAgentId: agentData.id, // Cursor Agent ID
       };
 
       logger.info('プランパース完了', { 
         stepsCount: plan.steps.length,
         branchName: plan.branchName,
-        cursorUrl: plan.cursorUrl
+        cursorUrl: plan.cursorUrl,
+        cursorAgentId: plan.cursorAgentId
       });
 
       return plan;
@@ -787,14 +857,30 @@ ${JSON.stringify(request.plan, null, 2)}
   ): Promise<string> {
     // メッセージに応じて適切な応答を生成
     if (message.toLowerCase().includes('plan') || message.includes('プラン')) {
-      return 'プランを確認しました。実装の準備ができています。Buildボタンを押して実装を開始してください。';
+      if (context.plan) {
+        return 'プランの内容を確認しました。実装の準備ができています。\n\n「🚀 実装を開始 (Build)」ボタンを押して実装を開始してください。';
+      } else {
+        return 'まだプランが作成されていません。「🔧 Planを立てる」ボタンを押してプランを作成してください。';
+      }
     }
 
-    if (message.toLowerCase().includes('change') || message.includes('変更')) {
-      return 'プランの変更を反映しました。どの部分を修正しますか？';
+    if (message.toLowerCase().includes('change') || message.includes('変更') || message.toLowerCase().includes('modify') || message.includes('修正')) {
+      return 'プランの変更をご希望ですね。具体的にどの部分を修正したいかお聞かせください。\n\n例：\n・ファイル構成の変更\n・使用技術の変更\n・機能の追加/削除';
     }
 
-    return '了解しました。他に質問はありますか？';
+    if (message.toLowerCase().includes('file') || message.includes('ファイル')) {
+      if (context.plan && context.plan.files) {
+        const fileCount = context.plan.files.length;
+        return `現在のプランには${fileCount}個のファイルが含まれています。\n\nファイルの追加や変更が必要な場合は、具体的にお知らせください。`;
+      }
+    }
+
+    if (message.toLowerCase().includes('help') || message.includes('ヘルプ') || message.includes('使い方')) {
+      return '以下のような質問やリクエストにお答えできます：\n\n• プランの内容確認\n• ファイル構成の変更\n• 機能の追加/削除\n• 実装の詳細についての質問\n\nお気軽にご質問ください！';
+    }
+
+    // デフォルトの応答
+    return `ご質問ありがとうございます。\n\n「${message}」について承知しました。より具体的にお答えするため、以下の情報があると助かります：\n\n• どの部分について詳しく知りたいですか？\n• 変更や追加をご希望ですか？\n\n他にご質問があればお聞かせください。`;
   }
 
   private generateMockFileContent(path: string, description: string): string {

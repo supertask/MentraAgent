@@ -6,18 +6,15 @@
   <title>Cursor Agent - Realworld Agent</title>
   <link rel="stylesheet" href="/styles.css">
   <style>
-    :root {
-      --header-h: 60px;
-    }
-
     body {
       margin: 0;
+      overflow: hidden;
     }
 
     /* Layout with Sidebar */
     .app-layout {
       display: flex;
-      min-height: calc(100dvh - var(--header-h));
+      height: calc(100vh - 60px);
       position: relative;
     }
 
@@ -151,108 +148,6 @@
       color: white;
     }
 
-    .session-item-content {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-      overflow: hidden;
-      min-width: 0;
-    }
-
-    .session-item-actions {
-      position: relative;
-      margin-left: auto;
-      opacity: 0;
-      transition: opacity 0.2s;
-      flex-shrink: 0;
-    }
-
-    .session-item:hover .session-item-actions {
-      opacity: 1;
-    }
-
-    .session-menu-btn {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 4px 8px;
-      font-size: 1.2rem;
-      transition: all 0.2s;
-      border-radius: 4px;
-      line-height: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .session-menu-btn:hover {
-      background: var(--border-color);
-      color: var(--text-primary);
-    }
-
-    .session-item.active .session-menu-btn {
-      color: white;
-    }
-
-    .session-item.active .session-menu-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
-    .session-menu {
-      position: fixed;
-      background: var(--surface-color);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      min-width: 150px;
-      z-index: 10000;
-      display: none;
-      white-space: nowrap;
-    }
-
-    .session-menu.show {
-      display: block;
-    }
-
-    .session-menu-item {
-      padding: 10px 16px;
-      cursor: pointer;
-      transition: background 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      color: var(--text-primary);
-      font-size: 0.9rem;
-      min-width: 160px;
-    }
-
-    .session-menu-item:first-child {
-      border-radius: 8px 8px 0 0;
-    }
-
-    .session-menu-item:last-child {
-      border-radius: 0 0 8px 8px;
-    }
-
-    .session-menu-item:only-child {
-      border-radius: 8px;
-    }
-
-    .session-menu-item:hover {
-      background: var(--border-color);
-    }
-
-    .session-menu-item.danger {
-      color: #ef4444;
-    }
-
-    .session-menu-item.danger:hover {
-      background: rgba(239, 68, 68, 0.1);
-    }
-
     .session-item .status-dot {
       width: 8px;
       height: 8px;
@@ -300,7 +195,6 @@
       background: var(--bg-color);
       position: relative;
       transition: margin-left 0.3s ease;
-      min-height: 0;
     }
 
     .sidebar.collapsed ~ .main-area {
@@ -311,7 +205,6 @@
       padding: 20px 30px;
       border-bottom: 1px solid var(--border-color);
       background: var(--surface-color);
-      flex-shrink: 0;
     }
 
     .main-header h2 {
@@ -331,14 +224,12 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      min-height: 0;
     }
 
     .chat-messages {
       flex: 1;
       overflow-y: auto;
       padding: 30px;
-      padding-bottom: 120px;
       background: var(--bg-color);
     }
 
@@ -391,116 +282,10 @@
       margin-top: 4px;
     }
 
-    /* Typing Indicator */
-    .typing-indicator {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 8px 0;
-    }
-
-    .typing-indicator span {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--text-secondary);
-      animation: typing 1.4s infinite;
-      opacity: 0.4;
-    }
-
-    .typing-indicator span:nth-child(1) {
-      animation-delay: 0s;
-    }
-
-    .typing-indicator span:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-
-    .typing-indicator span:nth-child(3) {
-      animation-delay: 0.4s;
-    }
-
-    @keyframes typing {
-      0%, 60%, 100% {
-        opacity: 0.4;
-        transform: translateY(0);
-      }
-      30% {
-        opacity: 1;
-        transform: translateY(-10px);
-      }
-    }
-
-    /* Action Buttons in Chat */
-    .chat-action-buttons {
-      margin: 20px 0;
-      padding: 20px;
-      background: var(--surface-color);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .chat-action-btn {
-      flex: 1;
-      min-width: 200px;
-      padding: 14px 24px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .chat-action-btn.primary {
-      background: var(--primary-color);
-      color: white;
-    }
-
-    .chat-action-btn.primary:hover {
-      background: #1d4ed8;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
-    }
-
-    .chat-action-btn.success {
-      background: #10b981;
-      color: white;
-    }
-
-    .chat-action-btn.success:hover {
-      background: #059669;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
-    }
-
-    .chat-action-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
     .chat-input-container {
       border-top: 1px solid var(--border-color);
-      padding: 16px 30px;
+      padding: 20px 30px;
       background: var(--surface-color);
-      position: fixed;
-      bottom: 0;
-      left: 280px;
-      right: 0;
-      z-index: 200;
-      transition: left 0.3s ease;
-    }
-
-    .sidebar.collapsed ~ .main-area .chat-input-container {
-      left: 0;
     }
 
     .chat-input-wrapper {
@@ -756,11 +541,6 @@
       .main-area {
         margin-left: 0 !important;
       }
-
-      .chat-input-container {
-        left: 0 !important;
-        padding: 12px 16px;
-      }
     }
   </style>
 </head>
@@ -842,7 +622,7 @@
             <textarea 
               id="chat-input" 
               class="chat-input" 
-              placeholder="メッセージを入力..."
+              placeholder="メッセージを入力... (Shift+Enterで改行)"
               rows="1"
               disabled
             ></textarea>
@@ -917,60 +697,9 @@
         await loadProjects();
         await loadSessions();
         setupEventListeners();
-        setupGlobalEventListeners();
       } catch (error) {
         console.error('初期化エラー:', error);
         alert('データの読み込みに失敗しました');
-      }
-    }
-
-    // Setup global event listeners
-    function setupGlobalEventListeners() {
-      // メニュー外をクリックしたときにメニューを閉じる
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('.session-item-actions') && !e.target.closest('.session-menu')) {
-          document.querySelectorAll('.session-menu.show').forEach(menu => {
-            menu.classList.remove('show');
-          });
-        }
-      });
-    }
-
-    // Delete session
-    async function deleteSession(sessionId) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${sessionId}`, {
-          method: 'DELETE'
-        });
-
-        if (!res.ok) throw new Error('Failed to delete session');
-
-        // セッションリストから削除
-        sessions = sessions.filter(s => s.id !== sessionId);
-
-        // 現在のセッションが削除された場合
-        if (currentSessionId === sessionId) {
-          currentSessionId = null;
-          chatMessages.innerHTML = `
-            <div class="empty-state">
-              <div class="empty-state-icon">💬</div>
-              <h3>セッションが削除されました</h3>
-              <p>左のサイドバーから別のセッションを選択するか、<br>新しいセッションを作成してください。</p>
-            </div>
-          `;
-          sessionTitle.textContent = '新規セッション';
-          sessionSubtitle.textContent = 'プロジェクトと仕様書を選択してください';
-          chatInput.disabled = true;
-          chatSendBtn.disabled = true;
-        }
-
-        // サイドバーを更新
-        renderSidebar();
-
-        console.log('セッションを削除しました:', sessionId);
-      } catch (error) {
-        console.error('セッション削除エラー:', error);
-        alert('セッションの削除に失敗しました');
       }
     }
 
@@ -1048,66 +777,11 @@
           const dateStr = createdAt.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
 
           sessionItemEl.innerHTML = `
-            <div class="session-item-content">
-              <span class="status-dot ${session.status}"></span>
-              <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${dateStr}</span>
-            </div>
-            <div class="session-item-actions">
-              <button class="session-menu-btn" data-session-id="${session.id}" title="メニュー">⋮</button>
-              <div class="session-menu">
-                <div class="session-menu-item danger" data-action="delete">
-                  <span>削除</span>
-                  <span style="margin-left: auto;">🗑️</span>
-                </div>
-              </div>
-            </div>
+            <span class="status-dot ${session.status}"></span>
+            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">${dateStr}</span>
           `;
 
-          // セッション選択（メニューボタン以外をクリック）
-          sessionItemEl.addEventListener('click', (e) => {
-            if (!e.target.closest('.session-item-actions')) {
-              loadSession(session.id);
-            }
-          });
-
-          // 3点メニューボタン
-          const menuBtn = sessionItemEl.querySelector('.session-menu-btn');
-          const menu = sessionItemEl.querySelector('.session-menu');
-          
-          menuBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            
-            // 他の開いているメニューを閉じる
-            document.querySelectorAll('.session-menu.show').forEach(m => {
-              if (m !== menu) m.classList.remove('show');
-            });
-            
-            // このメニューをトグル
-            const isShowing = menu.classList.toggle('show');
-            
-            // メニューの位置を計算（3点マークの真下、左端揃え）
-            if (isShowing) {
-              const btnRect = menuBtn.getBoundingClientRect();
-              menu.style.top = `${btnRect.bottom + 4}px`;
-              menu.style.left = `${btnRect.left}px`;
-            }
-          });
-
-          // メニュー項目のクリック
-          menu.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const item = e.target.closest('.session-menu-item');
-            if (!item) return;
-
-            const action = item.dataset.action;
-            menu.classList.remove('show');
-
-            if (action === 'delete') {
-              if (confirm(`このセッション (${dateStr}) を削除しますか？\nCursor Agentのセッションも削除されます。`)) {
-                await deleteSession(session.id);
-              }
-            }
-          });
+          sessionItemEl.addEventListener('click', () => loadSession(session.id));
 
           sessionListEl.appendChild(sessionItemEl);
         });
@@ -1136,14 +810,9 @@
         // Render chat history
         renderChatHistory(session);
 
-        // Enable chat input only if plan exists
-        if (session.plan) {
-          chatInput.disabled = false;
-          chatSendBtn.disabled = false;
-        } else {
-          chatInput.disabled = true;
-          chatSendBtn.disabled = true;
-        }
+        // Enable chat input
+        chatInput.disabled = false;
+        chatSendBtn.disabled = false;
 
         // Update sidebar
         renderSidebar();
@@ -1157,36 +826,26 @@
     function renderChatHistory(session) {
       chatMessages.innerHTML = '';
 
-      // Display chat history if exists
-      if (session.chatHistory && Array.isArray(session.chatHistory) && session.chatHistory.length > 0) {
-        // チャット履歴を表示（初期メッセージも含まれている）
+      // Add initial message
+      addChatMessage('assistant', `こんにちは！${session.project?.name}プロジェクトのコード生成をサポートします。`);
+
+      // Add plan if exists
+      if (session.plan) {
+        const planMessage = `プランを作成しました:\n\n${session.plan.summary || ''}`;
+        addChatMessage('assistant', planMessage);
+      }
+
+      // Add build if exists
+      if (session.build) {
+        const buildMessage = `✅ ビルドが完了しました！`;
+        addChatMessage('assistant', buildMessage);
+      }
+
+      // Add chat history if exists
+      if (session.chatHistory && Array.isArray(session.chatHistory)) {
         session.chatHistory.forEach(msg => {
           addChatMessage(msg.role, msg.content);
         });
-      } else {
-        // フォールバック: 履歴がない場合は初期メッセージを表示
-        addChatMessage('assistant', `こんにちは！${session.project?.name}プロジェクトのコード生成をサポートします。`);
-      }
-
-      // Add action buttons based on session status (regardless of chat history)
-      if (!session.plan) {
-        // Show "Create Plan" button
-        addActionButtons([
-          { 
-            text: '🔧 Planを立てる', 
-            className: 'primary', 
-            action: () => createPlan(session.id) 
-          }
-        ]);
-      } else if (!session.build) {
-        // Plan exists but build not started - show "Execute Build" button
-        addActionButtons([
-          { 
-            text: '🚀 実装を開始 (Build)', 
-            className: 'success', 
-            action: () => executeBuild(session.id) 
-          }
-        ]);
       }
     }
 
@@ -1210,101 +869,6 @@
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    // Add action buttons
-    function addActionButtons(buttons) {
-      const container = document.createElement('div');
-      container.className = 'chat-action-buttons';
-
-      buttons.forEach(btn => {
-        const buttonEl = document.createElement('button');
-        buttonEl.className = `chat-action-btn ${btn.className}`;
-        buttonEl.textContent = btn.text;
-        buttonEl.addEventListener('click', btn.action);
-        container.appendChild(buttonEl);
-      });
-
-      chatMessages.appendChild(container);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    // Create plan
-    async function createPlan(sessionId) {
-      try {
-        // Disable button
-        const buttons = document.querySelectorAll('.chat-action-btn');
-        buttons.forEach(btn => {
-          btn.disabled = true;
-          btn.textContent = 'プラン作成中...';
-        });
-
-        const res = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${sessionId}/plan`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
-        });
-
-        if (!res.ok) throw new Error('Failed to create plan');
-
-        const data = await res.json();
-        
-        // Remove action buttons
-        buttons.forEach(btn => btn.parentElement.remove());
-        
-        // Reload session to update UI (this will show the plan message)
-        await loadSession(sessionId);
-
-      } catch (error) {
-        console.error('プラン作成エラー:', error);
-        addChatMessage('assistant', `❌ プラン作成に失敗しました: ${error.message}`);
-        
-        // Re-enable buttons
-        const buttons = document.querySelectorAll('.chat-action-btn');
-        buttons.forEach(btn => {
-          btn.disabled = false;
-          btn.textContent = '🔧 Planを立てる';
-        });
-      }
-    }
-
-    // Execute build
-    async function executeBuild(sessionId) {
-      try {
-        // Disable button
-        const buttons = document.querySelectorAll('.chat-action-btn');
-        buttons.forEach(btn => {
-          btn.disabled = true;
-          btn.textContent = 'ビルド実行中...';
-        });
-
-        const res = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${sessionId}/build`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
-        });
-
-        if (!res.ok) throw new Error('Failed to execute build');
-
-        const data = await res.json();
-        
-        // Remove action buttons
-        buttons.forEach(btn => btn.parentElement.remove());
-        
-        // Reload session to update UI (this will show the build complete message)
-        await loadSession(sessionId);
-
-      } catch (error) {
-        console.error('ビルド実行エラー:', error);
-        addChatMessage('assistant', `❌ ビルド実行に失敗しました: ${error.message}`);
-        
-        // Re-enable buttons
-        const buttons = document.querySelectorAll('.chat-action-btn');
-        buttons.forEach(btn => {
-          btn.disabled = false;
-          btn.textContent = '🚀 実装を開始 (Build)';
-        });
-      }
-    }
-
     // Get status text
     function getStatusText(status) {
       const statusMap = {
@@ -1322,23 +886,15 @@
       if (!message || !currentSessionId) return;
 
       try {
-        // ユーザーメッセージを表示
         addChatMessage('user', message);
         chatInput.value = '';
         chatSendBtn.disabled = true;
-        chatInput.disabled = true;
-
-        // 送信中インジケーターを表示
-        const thinkingMessageEl = addThinkingMessage();
 
         const res = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${currentSessionId}/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message })
         });
-
-        // 送信中インジケーターを削除
-        thinkingMessageEl.remove();
 
         if (!res.ok) throw new Error('Failed to send message');
 
@@ -1347,44 +903,11 @@
 
       } catch (error) {
         console.error('チャット送信エラー:', error);
-        
-        // 送信中インジケーターを削除（エラー時）
-        const thinkingMessage = document.querySelector('.chat-message.thinking');
-        if (thinkingMessage) {
-          thinkingMessage.remove();
-        }
-        
         addChatMessage('assistant', 'エラーが発生しました。もう一度お試しください。');
       } finally {
         chatSendBtn.disabled = false;
-        chatInput.disabled = false;
         chatInput.focus();
       }
-    }
-
-    // Add thinking message (typing indicator)
-    function addThinkingMessage() {
-      const messageEl = document.createElement('div');
-      messageEl.className = 'chat-message assistant thinking';
-
-      const time = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-
-      messageEl.innerHTML = `
-        <div class="chat-message-avatar">🤖</div>
-        <div class="chat-message-content">
-          <div class="typing-indicator">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <div class="chat-message-time">${time}</div>
-        </div>
-      `;
-
-      chatMessages.appendChild(messageEl);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-      
-      return messageEl;
     }
 
     // Setup event listeners
@@ -1455,7 +978,7 @@
           if (!res.ok) throw new Error('Failed to create session');
 
           const data = await res.json();
-          currentSessionId = data.session.id;  // 修正: data.session.id を使用
+          currentSessionId = data.sessionId;
 
           // Close modal
           newSessionModal.classList.add('hidden');
@@ -1475,6 +998,13 @@
 
       // Chat send
       chatSendBtn.addEventListener('click', sendChatMessage);
+
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendChatMessage();
+        }
+      });
 
       // Auto-resize textarea
       chatInput.addEventListener('input', () => {
