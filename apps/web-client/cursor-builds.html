@@ -177,9 +177,45 @@
 </head>
 <body>
   <div class="sessions-container">
+    <nav class="page-header-nav">
+      <div class="nav-left">
+        <a href="/" class="nav-link home">🏠 ホーム</a>
+        <h2 style="margin: 0; color: var(--text-primary);">🤖 コード生成履歴</h2>
+      </div>
+      <button class="hamburger-menu" id="hamburger-menu" aria-label="メニュー">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/webcam.html" class="nav-link">🎥 ドキュメント作成</a>
+        <a href="/cursor-agent.html" class="nav-link">🤖 コード生成</a>
+        <a href="/documents.html" class="nav-link">📂 ドキュメント履歴</a>
+        <a href="/cursor-builds.html" class="nav-link">📜 コード生成履歴</a>
+        <a href="/projects.html" class="nav-link">📁 プロジェクト管理</a>
+      </div>
+    </nav>
+    <script>
+      // ハンバーガーメニューのトグル
+      const hamburger = document.getElementById('hamburger-menu');
+      const navLinks = document.getElementById('nav-links');
+      
+      hamburger.addEventListener('click', () => {
+        hamburger.classList.toggle('active');
+        navLinks.classList.toggle('active');
+      });
+
+      // メニュー外をクリックしたら閉じる
+      document.addEventListener('click', (e) => {
+        if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
+          hamburger.classList.remove('active');
+          navLinks.classList.remove('active');
+        }
+      });
+    </script>
+
     <header class="page-header">
       <div>
-        <a href="/cursor-agent.html" class="back-button">← Cursor Agentに戻る</a>
         <h1>🤖 Cursor Agent 生成履歴</h1>
         <p class="subtitle">過去に生成したコードとプランの一覧</p>
       </div>
@@ -301,12 +337,24 @@
         `;
       }
 
+      cursorLinks += `
+        <button onclick="deleteSession('${session.id}')" class="cursor-link-btn" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);">
+          🗑️ 削除
+        </button>
+      `;
       cursorLinks += '</div>';
 
       card.innerHTML = `
         <div class="session-header">
           <div class="session-info">
-            <h3>📁 ${project ? escapeHtml(project.name) : '不明なプロジェクト'}</h3>
+            <h3>
+              ${project ? `
+                <a href="/project-detail.html?id=${encodeURIComponent(project.id)}" style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                  📁 ${escapeHtml(project.name)}
+                  <span style="font-size: 0.7em; opacity: 0.7;">↗</span>
+                </a>
+              ` : '📁 不明なプロジェクト'}
+            </h3>
             <div class="session-meta">
               <span class="meta-badge">🆔 ${session.id.substring(0, 8)}...</span>
               <span class="meta-badge">📄 ${session.documentIds.length}件の仕様書</span>
@@ -339,6 +387,32 @@
       div.textContent = text;
       return div.innerHTML;
     }
+
+    // セッション削除
+    async function deleteSession(sessionId) {
+      if (!confirm('このセッションを削除してもよろしいですか？\n\n削除すると、ビルド結果も含めて全てのデータが削除されます。')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions/${sessionId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete session');
+        }
+
+        alert('セッションを削除しました');
+        loadSessions(); // 一覧を再読み込み
+      } catch (error) {
+        console.error('Error deleting session:', error);
+        alert('セッションの削除に失敗しました');
+      }
+    }
+
+    // グローバルスコープに公開
+    window.deleteSession = deleteSession;
 
     // イベントリスナー
     document.getElementById('refresh-button').addEventListener('click', loadSessions);

@@ -305,18 +305,6 @@
       color: white;
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-secondary);
-    }
-
-    .loading {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-secondary);
-    }
-
     @media (max-width: 1200px) {
       .cursor-container {
         grid-template-columns: 1fr;
@@ -326,29 +314,50 @@
 </head>
 <body>
   <div class="container">
-    <header>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <a href="/documents.html" class="back-button">← ドキュメント履歴に戻る</a>
-        <a href="/cursor-builds.html" class="back-button" style="background: #667eea; color: white;">
-          📂 生成履歴を見る
-        </a>
+    <nav class="page-header-nav">
+      <div class="nav-left">
+        <a href="/" class="nav-link home">🏠 ホーム</a>
+        <h2 style="margin: 0; color: var(--text-primary);">🤖 Cursor Agent</h2>
       </div>
+      <button class="hamburger-menu" id="hamburger-menu" aria-label="メニュー">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/webcam.html" class="nav-link">🎥 ドキュメント作成</a>
+        <a href="/cursor-agent.html" class="nav-link">🤖 コード生成</a>
+        <a href="/documents.html" class="nav-link">📂 ドキュメント履歴</a>
+        <a href="/cursor-builds.html" class="nav-link">📜 コード生成履歴</a>
+        <a href="/projects.html" class="nav-link">📁 プロジェクト管理</a>
+      </div>
+    </nav>
+    <script>
+      // ハンバーガーメニューのトグル
+      const hamburger = document.getElementById('hamburger-menu');
+      const navLinks = document.getElementById('nav-links');
+      
+      hamburger.addEventListener('click', () => {
+        hamburger.classList.toggle('active');
+        navLinks.classList.toggle('active');
+      });
+
+      // メニュー外をクリックしたら閉じる
+      document.addEventListener('click', (e) => {
+        if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
+          hamburger.classList.remove('active');
+          navLinks.classList.remove('active');
+        }
+      });
+    </script>
+
+    <header>
       <h1>🤖 Cursor Agent - コード実装</h1>
       <p class="subtitle">仕様書からAIがコードを自動実装</p>
     </header>
 
     <main>
-      <div id="loading" class="loading">
-        <p>読み込み中...</p>
-      </div>
-
-      <div id="empty-state" class="empty-state hidden">
-        <div style="font-size: 4rem; margin-bottom: 20px;">📁</div>
-        <h2>プロジェクトを選択してください</h2>
-        <p>プロジェクトと仕様書を選択して、Cursor Agentでコード実装を開始します</p>
-      </div>
-
-      <div id="content" class="cursor-container hidden">
+      <div id="content" class="cursor-container">
         <!-- 左パネル: プロジェクト選択 & 仕様書リスト -->
         <div>
           <div class="cursor-panel">
@@ -356,7 +365,7 @@
             <div class="project-selector">
               <label>プロジェクト:</label>
               <select id="project-select">
-                <option value="">読み込み中...</option>
+                <option value="">プロジェクトを選択してください</option>
               </select>
             </div>
           </div>
@@ -444,10 +453,6 @@
     const planStatus = document.getElementById('plan-status');
 
     async function init() {
-      const loading = document.getElementById('loading');
-      const emptyState = document.getElementById('empty-state');
-      const content = document.getElementById('content');
-
       try {
         // プロジェクト一覧取得
         const res = await fetch(`${API_BASE_URL}/api/projects`);
@@ -456,30 +461,16 @@
         const data = await res.json();
         projects = data.projects;
 
-        loading.classList.add('hidden');
-
-        if (projects.length === 0) {
-          emptyState.classList.remove('hidden');
-        } else {
-          content.classList.remove('hidden');
-          renderProjects();
-        }
-
+        renderProjects();
         setupEventListeners();
       } catch (error) {
         console.error('Error loading data:', error);
-        loading.classList.add('hidden');
-        emptyState.innerHTML = `
-          <div style="font-size: 4rem; margin-bottom: 20px;">❌</div>
-          <h2>読み込みエラー</h2>
-          <p>APIサーバーが起動していることを確認してください</p>
-        `;
-        emptyState.classList.remove('hidden');
+        alert('プロジェクトの読み込みに失敗しました。APIサーバーが起動していることを確認してください。');
       }
     }
 
     function renderProjects() {
-      projectSelect.innerHTML = '<option value="">プロジェクトを選択...</option>';
+      projectSelect.innerHTML = '<option value="">プロジェクトを選択してください</option>';
       projects.forEach(project => {
         const option = document.createElement('option');
         option.value = project.id;

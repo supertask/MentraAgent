@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プロジェクト詳細 - Realworld Agent</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown-dark.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked@11.0.0/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ 
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#1a1a1a',
+        primaryColor: '#2563eb',
+        primaryTextColor: '#e5e7eb',
+        primaryBorderColor: '#3b82f6',
+        lineColor: '#6b7280',
+        secondaryColor: '#10b981',
+        tertiaryColor: '#8b5cf6',
+        fontSize: '16px'
+      }
+    });
+    window.mermaid = mermaid;
+  </script>
+  <style>
+    .detail-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .project-header-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .project-name {
+      font-size: 2em;
+      margin: 0 0 16px 0;
+    }
+
+    .project-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .meta-item {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 12px 16px;
+      border-radius: 8px;
+    }
+
+    .meta-label {
+      font-size: 0.85em;
+      opacity: 0.9;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .meta-value {
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+
+    .section-title {
+      font-size: 1.5em;
+      margin: 30px 0 20px 0;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sessions-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .session-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .session-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-color);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .session-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+
+    .session-title {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 8px 0;
+    }
+
+    .status-badge {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9em;
+      text-transform: uppercase;
+    }
+
+    .status-planning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-building {
+      background: #cfe2ff;
+      color: #084298;
+    }
+
+    .status-completed {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .status-error {
+      background: #f8d7da;
+      color: #842029;
+    }
+
+    .session-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+    }
+
+    .plan-summary {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+      margin: 12px 0;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .session-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 10px 16px;
+      background: var(--primary-color);
+      color: white;
+      text-decoration: none;
+      text-align: center;
+      border-radius: 6px;
+      font-size: 0.9em;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .action-btn:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .action-btn.secondary {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .action-btn.secondary:hover {
+      background: var(--border-color);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-icon {
+      font-size: 4em;
+      margin-bottom: 20px;
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-left-color: var(--primary-color);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .github-info {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    .github-info a {
+      color: white;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .github-info a:hover {
+      text-decoration: underline;
+    }
+
+    .documents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .document-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .document-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary-color);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .document-type-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .document-type-badge.specification {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .document-type-badge.minutes {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white;
+    }
+
+    .document-type-badge.memo {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+    }
+
+    .document-title {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .document-summary {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .document-date {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      background: var(--surface-color);
+      border-radius: 12px;
+      padding: 0;
+      max-width: 900px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+
+    .close-button {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .close-button:hover {
+      color: var(--text-primary);
+      transform: rotate(90deg);
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    /* GitHub Markdown CSSのカスタマイズ */
+    .markdown-body {
+      background: transparent !important;
+      color: #c9d1d9 !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif !important;
+      font-size: 16px !important;
+      line-height: 1.6 !important;
+      word-wrap: break-word !important;
+      padding: 20px !important;
+    }
+
+    /* Mermaidダイアグラムスタイル */
+    .mermaid-diagram {
+      background: var(--bg-color);
+      padding: 20px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border: 1px solid var(--border-color);
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .mermaid-diagram svg {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="detail-container">
+    <nav class="page-header-nav">
+      <div class="nav-left">
+        <a href="/" class="nav-link home">🏠 ホーム</a>
+      </div>
+      <button class="hamburger-menu" id="hamburger-menu" aria-label="メニュー">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/webcam.html" class="nav-link">🎥 ドキュメント作成</a>
+        <a href="/cursor-agent.html" class="nav-link">🤖 コード生成</a>
+        <a href="/documents.html" class="nav-link">📂 ドキュメント履歴</a>
+        <a href="/cursor-builds.html" class="nav-link">📜 コード生成履歴</a>
+        <a href="/projects.html" class="nav-link">📁 プロジェクト管理</a>
+      </div>
+    </nav>
+    <script>
+      // ハンバーガーメニューのトグル
+      const hamburger = document.getElementById('hamburger-menu');
+      const navLinks = document.getElementById('nav-links');
+      
+      hamburger.addEventListener('click', () => {
+        hamburger.classList.toggle('active');
+        navLinks.classList.toggle('active');
+      });
+
+      // メニュー外をクリックしたら閉じる
+      document.addEventListener('click', (e) => {
+        if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
+          hamburger.classList.remove('active');
+          navLinks.classList.remove('active');
+        }
+      });
+    </script>
+
+    <div id="loading-state" class="loading-state">
+      <div class="spinner"></div>
+      <p>プロジェクト情報を読み込み中...</p>
+    </div>
+
+    <div id="error-state" class="empty-state hidden">
+      <div class="empty-icon">❌</div>
+      <h2>エラーが発生しました</h2>
+      <p id="error-message"></p>
+      <a href="/projects.html" class="action-btn" style="display: inline-block; margin-top: 20px;">プロジェクト一覧に戻る</a>
+    </div>
+
+    <div id="content" class="hidden">
+      <!-- プロジェクト情報 -->
+      <div id="project-header"></div>
+
+      <!-- ドキュメント一覧 -->
+      <h2 class="section-title">📄 ドキュメント・仕様書</h2>
+      <div id="documents-container">
+        <div id="documents-list" class="documents-grid"></div>
+        <div id="documents-empty" class="empty-state hidden">
+          <div class="empty-icon">📭</div>
+          <h3>まだドキュメントがありません</h3>
+          <p>このプロジェクトのドキュメントを作成してみましょう</p>
+          <a href="/webcam.html" class="action-btn" style="display: inline-block; margin-top: 20px;">🎥 ドキュメント作成を開始</a>
+        </div>
+      </div>
+
+      <!-- 生成コード一覧 -->
+      <h2 class="section-title">🤖 生成されたコード</h2>
+      <div id="sessions-container">
+        <div id="sessions-list" class="sessions-grid"></div>
+        <div id="sessions-empty" class="empty-state hidden">
+          <div class="empty-icon">📭</div>
+          <h3>まだコードが生成されていません</h3>
+          <p>Cursor Agentでこのプロジェクトのコードを生成してみましょう</p>
+          <a href="/cursor-agent.html" class="action-btn" style="display: inline-block; margin-top: 20px;">🚀 コード生成を開始</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ドキュメント詳細モーダル -->
+    <div id="document-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title"></h2>
+          <button id="close-modal" class="close-button">&times;</button>
+        </div>
+        <div id="modal-body" class="modal-body">
+          <!-- 詳細がここに表示されます -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    const API_BASE_URL = 'http://localhost:3000';
+
+    // URLパラメータからプロジェクトIDを取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('id');
+
+    if (!projectId) {
+      showError('プロジェクトIDが指定されていません');
+    } else {
+      loadProjectDetail();
+    }
+
+    async function loadProjectDetail() {
+      const loadingState = document.getElementById('loading-state');
+      const errorState = document.getElementById('error-state');
+      const content = document.getElementById('content');
+
+      try {
+        // プロジェクト情報を取得
+        const projectResponse = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+        if (!projectResponse.ok) throw new Error('Failed to load project');
+        const projectData = await projectResponse.json();
+        const project = projectData.project;
+
+        // ドキュメント一覧を取得
+        const documentsResponse = await fetch(`${API_BASE_URL}/api/projects/${projectId}/documents`);
+        if (!documentsResponse.ok) throw new Error('Failed to load documents');
+        const documentsData = await documentsResponse.json();
+        const documents = documentsData.documents;
+
+        // セッション一覧を取得
+        const sessionsResponse = await fetch(`${API_BASE_URL}/api/cursor-agent/sessions?projectId=${projectId}`);
+        if (!sessionsResponse.ok) throw new Error('Failed to load sessions');
+        const sessionsData = await sessionsResponse.json();
+        const sessions = sessionsData.sessions;
+
+        loadingState.classList.add('hidden');
+        content.classList.remove('hidden');
+
+        renderProjectHeader(project);
+        renderDocuments(documents);
+        renderSessions(sessions);
+      } catch (error) {
+        console.error('Error loading project detail:', error);
+        loadingState.classList.add('hidden');
+        showError('プロジェクト情報の読み込みに失敗しました');
+      }
+    }
+
+    function renderProjectHeader(project) {
+      const header = document.getElementById('project-header');
+      const createdAt = new Date(project.createdAt).toLocaleString('ja-JP');
+      const updatedAt = new Date(project.updatedAt).toLocaleString('ja-JP');
+
+      let githubInfo = '';
+      if (project.githubRepo) {
+        githubInfo = `
+          <div class="github-info">
+            <div style="margin-bottom: 8px;">
+              <strong>📦 GitHub リポジトリ:</strong>
+              <a href="${escapeHtml(project.githubRepo)}" target="_blank">
+                ${escapeHtml(project.githubRepo)} ↗
+              </a>
+            </div>
+            ${project.githubBranch ? `
+              <div style="margin-bottom: 8px;">
+                <strong>🌿 ブランチ:</strong> ${escapeHtml(project.githubBranch)}
+              </div>
+            ` : ''}
+            ${project.githubSubDirectory ? `
+              <div>
+                <strong>📁 サブディレクトリ:</strong> <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">${escapeHtml(project.githubSubDirectory)}</code>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      header.innerHTML = `
+        <div class="project-header-card">
+          <h1 class="project-name">📁 ${escapeHtml(project.name)}</h1>
+          <div class="project-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">ドキュメント数</span>
+              <span class="meta-value">${project.documentCount || 0}件</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">作成日時</span>
+              <span class="meta-value">${createdAt}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">最終更新</span>
+              <span class="meta-value">${updatedAt}</span>
+            </div>
+          </div>
+          ${githubInfo}
+        </div>
+      `;
+    }
+
+    function renderDocuments(documents) {
+      const documentsList = document.getElementById('documents-list');
+      const documentsEmpty = document.getElementById('documents-empty');
+
+      if (documents.length === 0) {
+        documentsList.classList.add('hidden');
+        documentsEmpty.classList.remove('hidden');
+        return;
+      }
+
+      documentsList.classList.remove('hidden');
+      documentsEmpty.classList.add('hidden');
+
+      documentsList.innerHTML = '';
+      documents.forEach(document => {
+        const card = createDocumentCard(document);
+        documentsList.appendChild(card);
+      });
+    }
+
+    function createDocumentCard(document) {
+      const card = document.createElement('div');
+      card.className = 'document-card';
+
+      const typeLabel = {
+        specification: '仕様書',
+        minutes: '議事録',
+        memo: 'メモ'
+      }[document.type] || document.type;
+
+      const createdAt = new Date(document.createdAt);
+      const dateStr = `${createdAt.getFullYear()}/${String(createdAt.getMonth() + 1).padStart(2, '0')}/${String(createdAt.getDate()).padStart(2, '0')} ${String(createdAt.getHours()).padStart(2, '0')}:${String(createdAt.getMinutes()).padStart(2, '0')}`;
+
+      card.innerHTML = `
+        <span class="document-type-badge ${document.type}">${typeLabel}</span>
+        <div class="document-title">${escapeHtml(document.title)}</div>
+        <div class="document-summary">${escapeHtml(document.summary)}</div>
+        <div class="document-date">📅 ${dateStr}</div>
+      `;
+
+      card.addEventListener('click', () => viewDocumentDetails(document));
+
+      return card;
+    }
+
+    async function viewDocumentDetails(document) {
+      const modal = document.getElementById('document-modal');
+      const modalTitle = document.getElementById('modal-title');
+      const modalBody = document.getElementById('modal-body');
+
+      modalTitle.textContent = document.title;
+
+      let markdown = document.content.markdown || '';
+      
+      // Markdownコードブロック内のMarkdownを抽出（AIが説明文と一緒に生成した場合の対処）
+      const markdownBlockMatch = markdown.match(/```markdown\n([\s\S]*?)```/);
+      if (markdownBlockMatch) {
+        markdown = markdownBlockMatch[1].trim();
+        console.log('Extracted markdown from code block in project detail');
+      }
+      
+      // marked.jsの設定を初期化
+      marked.setOptions({
+        gfm: true,
+        breaks: true,
+        pedantic: false,
+        headerIds: true,
+        mangle: false,
+        highlight: function(code, lang) {
+          if (window.hljs && lang) {
+            try {
+              return window.hljs.highlight(code, { language: lang }).value;
+            } catch (e) {
+              console.warn('Highlight.js error:', e);
+            }
+          }
+          return code;
+        }
+      });
+      
+      const html = marked.parse(markdown);
+
+      modalBody.innerHTML = `
+        <div class="markdown-body">
+          ${html}
+        </div>
+      `;
+      
+      // Mermaidダイアグラムをレンダリング
+      const mermaidElements = modalBody.querySelectorAll('code.language-mermaid');
+      if (mermaidElements.length > 0 && window.mermaid) {
+        for (const element of mermaidElements) {
+          try {
+            const mermaidCode = element.textContent;
+            const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const { svg } = await window.mermaid.render(uniqueId, mermaidCode);
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mermaid-diagram';
+            wrapper.innerHTML = svg;
+            
+            // 元のコードブロックを置き換え
+            const pre = element.closest('pre');
+            if (pre) {
+              pre.replaceWith(wrapper);
+            }
+          } catch (error) {
+            console.error('Mermaid rendering error:', error);
+          }
+        }
+      }
+      
+      // その他のコードブロックにシンタックスハイライトを適用
+      if (window.hljs) {
+        modalBody.querySelectorAll('pre code:not(.language-mermaid)').forEach((block) => {
+          window.hljs.highlightElement(block);
+        });
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    // モーダルを閉じる
+    document.getElementById('close-modal').addEventListener('click', () => {
+      document.getElementById('document-modal').classList.add('hidden');
+    });
+
+    document.getElementById('document-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'document-modal') {
+        document.getElementById('document-modal').classList.add('hidden');
+      }
+    });
+
+    function renderSessions(sessions) {
+      const sessionsList = document.getElementById('sessions-list');
+      const sessionsEmpty = document.getElementById('sessions-empty');
+
+      if (sessions.length === 0) {
+        sessionsList.classList.add('hidden');
+        sessionsEmpty.classList.remove('hidden');
+        return;
+      }
+
+      sessionsList.classList.remove('hidden');
+      sessionsEmpty.classList.add('hidden');
+
+      sessionsList.innerHTML = '';
+      sessions.forEach(session => {
+        const card = createSessionCard(session);
+        sessionsList.appendChild(card);
+      });
+    }
+
+    function createSessionCard(session) {
+      const card = document.createElement('div');
+      card.className = 'session-card';
+
+      const statusClass = `status-${session.status}`;
+      const statusText = {
+        planning: 'プラン作成中',
+        building: 'ビルド中',
+        completed: '完了',
+        error: 'エラー'
+      }[session.status] || session.status;
+
+      const createdAt = new Date(session.createdAt).toLocaleString('ja-JP');
+
+      let planSummary = '';
+      if (session.plan && session.plan.summary) {
+        planSummary = `
+          <div class="plan-summary">
+            <strong>📋 プラン:</strong> ${escapeHtml(session.plan.summary)}
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="session-header">
+          <div>
+            <h3 class="session-title">セッション ${session.id.substring(0, 8)}...</h3>
+            <div class="session-meta">
+              <span class="meta-badge">📄 ${session.documentIds.length}件の仕様書</span>
+              <span class="meta-badge">🕒 ${createdAt}</span>
+            </div>
+          </div>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>
+        ${planSummary}
+        <div class="session-actions">
+          <a href="/cursor-build-detail.html?id=${encodeURIComponent(session.id)}" class="action-btn">
+            📖 詳細を見る
+          </a>
+          ${session.cursorUrl ? `
+            <a href="${escapeHtml(session.cursorUrl)}" target="_blank" class="action-btn secondary">
+              🎨 Cursor UIで開く
+            </a>
+          ` : ''}
+        </div>
+      `;
+
+      return card;
+    }
+
+    function showError(message) {
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('error-state').classList.remove('hidden');
+      document.getElementById('error-message').textContent = message;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
+

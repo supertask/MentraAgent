@@ -667,8 +667,58 @@ JSON形式で回答してください：
 
 # 要求事項
 - 明確で構造化されたドキュメントを作成
+- **説明文なしで、直接Markdownドキュメントを出力してください（「以下は...」などの前置きは不要です）**
+- **Markdownコードブロック（```markdown）で囲まないでください。直接Markdownを出力してください**
 - Markdown形式で出力
 - 必要に応じて表や箇条書きを使用
+- **フロー図、アーキテクチャ図、シーケンス図、ER図などの図を表現する場合は、Mermaid記法を積極的に使用してください**
+- Mermaidコードブロックは ```mermaid で囲んでください
+
+## Mermaid記法の例:
+
+### フローチャート:
+```mermaid
+graph TD
+    A[開始] --> B{条件}
+    B -->|Yes| C[処理1]
+    B -->|No| D[処理2]
+    C --> E[終了]
+    D --> E
+```
+
+### シーケンス図:
+```mermaid
+sequenceDiagram
+    participant A as ユーザー
+    participant B as サーバー
+    A->>B: リクエスト
+    B->>A: レスポンス
+```
+
+### ER図:
+```mermaid
+erDiagram
+    USER ||--o{ ORDER : places
+    USER {
+        string name
+        string email
+    }
+    ORDER {
+        int orderId
+        date orderDate
+    }
+```
+
+### ガントチャート:
+```mermaid
+gantt
+    title プロジェクトスケジュール
+    section 設計
+    要件定義 :a1, 2024-01-01, 7d
+    基本設計 :a2, after a1, 10d
+    section 開発
+    実装     :a3, after a2, 14d
+```
 """
         return prompt
 

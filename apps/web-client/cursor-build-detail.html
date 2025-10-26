@@ -321,8 +321,43 @@
 </head>
 <body>
   <div class="detail-container">
+    <nav class="page-header-nav">
+      <div class="nav-left">
+        <a href="/" class="nav-link home">🏠 ホーム</a>
+      </div>
+      <button class="hamburger-menu" id="hamburger-menu" aria-label="メニュー">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/webcam.html" class="nav-link">🎥 ドキュメント作成</a>
+        <a href="/cursor-agent.html" class="nav-link">🤖 コード生成</a>
+        <a href="/documents.html" class="nav-link">📂 ドキュメント履歴</a>
+        <a href="/cursor-builds.html" class="nav-link">📜 コード生成履歴</a>
+        <a href="/projects.html" class="nav-link">📁 プロジェクト管理</a>
+      </div>
+    </nav>
+    <script>
+      // ハンバーガーメニューのトグル
+      const hamburger = document.getElementById('hamburger-menu');
+      const navLinks = document.getElementById('nav-links');
+      
+      hamburger.addEventListener('click', () => {
+        hamburger.classList.toggle('active');
+        navLinks.classList.toggle('active');
+      });
+
+      // メニュー外をクリックしたら閉じる
+      document.addEventListener('click', (e) => {
+        if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
+          hamburger.classList.remove('active');
+          navLinks.classList.remove('active');
+        }
+      });
+    </script>
+
     <div class="page-header">
-      <a href="/cursor-builds.html" class="back-button">← 生成履歴に戻る</a>
     </div>
 
     <div id="loading-state" class="loading-state">

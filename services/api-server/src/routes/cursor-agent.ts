@@ -494,6 +494,53 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
+
+  // セッション削除
+  fastify.delete('/sessions/:sessionId', async (request, reply) => {
+    try {
+      const { sessionId } = request.params as { sessionId: string };
+
+      // セッション情報を取得
+      const session = await sessionRepo.findById(sessionId);
+      if (!session) {
+        return reply.status(404).send({
+          error: 'Session not found',
+        });
+      }
+
+      // ビルド結果のディレクトリを削除（存在する場合）
+      if (session.build && typeof session.build === 'object') {
+        const build = session.build as any;
+        const buildId = build.buildId;
+        
+        if (buildId) {
+          const buildDir = path.join(process.cwd(), 'storage', 'cursor-builds', buildId);
+          try {
+            await fs.rm(buildDir, { recursive: true, force: true });
+            logger.info('ビルドディレクトリを削除しました', { buildDir });
+          } catch (error) {
+            logger.warn('ビルドディレクトリの削除に失敗しました', { buildDir, error });
+          }
+        }
+      }
+
+      // データベースからセッションを削除
+      await sessionRepo.delete(sessionId);
+
+      logger.info('セッションを削除しました', { sessionId });
+
+      return {
+        success: true,
+        message: 'Session deleted successfully',
+      };
+    } catch (error) {
+      logger.error('セッション削除エラー', error as Error);
+      return reply.status(500).send({
+        error: 'Failed to delete session',
+        message: (error as Error).message,
+      });
+    }
+  });
 };
 
 

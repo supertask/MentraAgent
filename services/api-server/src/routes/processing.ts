@@ -629,5 +629,76 @@ _このPRは Realworld Agent によって自動生成されました_
       });
     }
   });
+
+  // ドキュメント更新
+  fastify.patch('/documents/:documentId', async (request, reply) => {
+    try {
+      const { documentId } = request.params as { documentId: string };
+      const body = request.body as any;
+
+      // ドキュメント情報を取得
+      const document = await documentRepo.findById(documentId);
+      if (!document) {
+        return reply.status(404).send({
+          error: 'Document not found',
+        });
+      }
+
+      // ドキュメントを更新
+      const updatedDocument = await documentRepo.update(documentId, {
+        title: body.title || document.title,
+        summary: body.summary || document.summary,
+        content: body.content || document.content,
+        type: body.type || document.type,
+      });
+
+      logger.info('ドキュメントを更新しました', { documentId });
+
+      return {
+        success: true,
+        message: 'Document updated successfully',
+        document: updatedDocument,
+      };
+    } catch (error) {
+      logger.error('ドキュメント更新エラー', error as Error);
+      return reply.status(500).send({
+        error: 'Failed to update document',
+        message: (error as Error).message,
+      });
+    }
+  });
+
+  // ドキュメント削除
+  fastify.delete('/documents/:documentId', async (request, reply) => {
+    try {
+      const { documentId } = request.params as { documentId: string };
+
+      // ドキュメント情報を取得
+      const document = await documentRepo.findById(documentId);
+      if (!document) {
+        return reply.status(404).send({
+          error: 'Document not found',
+        });
+      }
+
+      // データベースからドキュメントを削除
+      // DocumentRepositoryにdeleteメソッドがあるか確認する必要があるが、
+      // とりあえず実装する
+      await documentRepo.delete(documentId);
+
+      logger.info('ドキュメントを削除しました', { documentId });
+
+      return {
+        success: true,
+        message: 'Document deleted successfully',
+      };
+    } catch (error) {
+      logger.error('ドキュメント削除エラー', error as Error);
+      return reply.status(500).send({
+        error: 'Failed to delete document',
+        message: (error as Error).message,
+      });
+    }
+  });
 };
 

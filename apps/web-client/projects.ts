@@ -133,6 +133,9 @@ function createProjectCard(project: any): HTMLElement {
     </div>
     
     <div class="project-card-actions">
+      <a href="/project-detail.html?id=${project.id}" class="primary-button" style="text-decoration: none; text-align: center;">
+        📊 詳細を見る
+      </a>
       <button class="edit-button secondary-button" data-project-id="${project.id}">
         ✏️ 編集
       </button>
