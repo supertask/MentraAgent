@@ -166,7 +166,9 @@ stateDiagram-v2
     WaitingForScreenshots --> IntegratingContent: 両方完了
     WaitingForDocs --> IntegratingContent: 両方完了
     
-    IntegratingContent --> CommittingDoc: 統合完了
+    IntegratingContent --> DeterminingTargetDir: 統合完了
+    
+    DeterminingTargetDir --> CommittingDoc: scope判定完了
     
     CommittingDoc --> UpdatingGoogleDocs: GitHub保存完了
     
@@ -212,7 +214,8 @@ stateDiagram-v2
 | **ScreenshotsComplete** | スクショ抽出完了 | WaitingForDocs |
 | **WaitingForScreenshots** | スクショ待機中（Docs完了済み） | IntegratingContent |
 | **WaitingForDocs** | Docs待機中（スクショ完了済み） | IntegratingContent |
-| **IntegratingContent** | 議事録+スクショ統合中 | CommittingDoc |
+| **IntegratingContent** | 議事録+スクショ統合中 | DeterminingTargetDir |
+| **DeterminingTargetDir** | scope判定中（Meeting名パース） | CommittingDoc |
 | **CommittingDoc** | GitHub保存中 | UpdatingGoogleDocs |
 | **UpdatingGoogleDocs** | Google Docs更新中 | DetectingDiff |
 | **DetectingDiff** | Doc差分検出・判定 | FirstDoc / SubsequentDoc |
@@ -289,10 +292,11 @@ sequenceDiagram
     end
     
     API->>API: 議事録 + スクショ統合
+    API->>API: Meeting名からscopeとディレクトリ判定<br/>(<ProjectName>_<scope>_<title>)
     
     par GitHub保存
-        API->>GitHub: コミット<br/>pj/{ProjectName}/Docs/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}.md
-        API->>GitHub: コミット<br/>pj/{ProjectName}/Docs/images/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}/
+        API->>GitHub: コミット<br/>{TargetDir}/Docs/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}.md
+        API->>GitHub: コミット<br/>{TargetDir}/Docs/images/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}/
     and Google Docs更新
         API->>Docs: GitHubリンク追記<br/>(Google Docs API)
     end
@@ -369,8 +373,10 @@ sequenceDiagram
     participant CursorAPI as Cursor Agent API
     participant GitHubCode as GitHub<br/>(コード保存)
     
-    GitHub->>Webhook: Doc更新通知<br/>(pj/ProjectA/Docs/Doc-{MeetingID}-{DateTime}.md)
+    GitHub->>Webhook: Doc更新通知<br/>({TargetDir}/Docs/Doc-{MeetingID}-{DateTime}.md)
     Webhook->>ProcessingEngine: 新規Doc検出
+    
+    ProcessingEngine->>ProcessingEngine: パスからscope判定<br/>(Meeting名パース)
     
     ProcessingEngine->>DB: プロジェクトの処理履歴確認
     DB-->>ProcessingEngine: 処理済み議事録リスト<br/>(Doc-20241027_140000.md 等)
@@ -380,24 +386,24 @@ sequenceDiagram
     alt 既に処理済み
         ProcessingEngine-->>Webhook: スキップ（処理済み）
     else 未処理
-        ProcessingEngine->>GitHub: 新規Doc取得<br/>(Doc-{MeetingID}-{DateTime}.md)
+        ProcessingEngine->>GitHub: 新規Doc取得<br/>({TargetDir}/Docs/Doc-{MeetingID}-{DateTime}.md)
         GitHub-->>ProcessingEngine: Doc内容（議事録+スクショ）
         
-        ProcessingEngine->>GitHub: プロジェクトコンテキスト取得<br/>(既存コード・README)
+        ProcessingEngine->>GitHub: 対象ディレクトリのコンテキスト取得<br/>({TargetDir}の既存コード・README)
         GitHub-->>ProcessingEngine: プロジェクト情報
         
-        ProcessingEngine->>CursorAPI: コード生成リクエスト<br/>(Doc内容 + コンテキスト)
+        ProcessingEngine->>CursorAPI: コード生成リクエスト<br/>(Doc内容 + コンテキスト + 対象ディレクトリ)
         Note over CursorAPI: 初回: 新規セッション作成<br/>2回目以降: 既存セッションで更新
         CursorAPI->>CursorAPI: Background Agent起動
-        CursorAPI->>CursorAPI: コード生成/更新
+        CursorAPI->>CursorAPI: コード生成/更新<br/>({TargetDir}配下)
         CursorAPI-->>ProcessingEngine: 生成コード<br/>(複数ファイル)
         
-        ProcessingEngine->>GitHubCode: ブランチ作成<br/>pj/ProjectA/feature/update-from-{MeetingID}
+        ProcessingEngine->>GitHubCode: ブランチ作成<br/>{TargetDir}/feature/update-from-{MeetingID}
         ProcessingEngine->>GitHubCode: ファイルコミット
         ProcessingEngine->>GitHubCode: Pull Request作成
         GitHubCode-->>ProcessingEngine: PR URL
         
-        ProcessingEngine->>DB: 処理済みとして記録<br/>(Doc-{MeetingID}-{DateTime}.md)
+        ProcessingEngine->>DB: 処理済みとして記録<br/>(Doc-{MeetingID}-{DateTime}.md + TargetDir)
         DB-->>ProcessingEngine: 記録完了
         
         ProcessingEngine-->>Webhook: 処理完了通知
@@ -418,10 +424,10 @@ sequenceDiagram
     participant Docs as Google Docs
     
     Note over Engineer,GitHub: エンジニア: コード確認
-    Engineer->>GitHub: PR確認<br/>pj/ProjectA/feature/update-from-{MeetingID}
+    Engineer->>GitHub: PR確認<br/>{TargetDir}/feature/update-from-{MeetingID}
     GitHub-->>Engineer: 生成コード + 差分表示
     
-    Engineer->>GitHub: 仕様書確認<br/>pj/ProjectA/Docs/Doc-{MeetingID}-{DateTime}.md
+    Engineer->>GitHub: 仕様書確認<br/>{TargetDir}/Docs/Doc-{MeetingID}-{DateTime}.md
     GitHub-->>Engineer: 議事録 + スクリーンショット
     
     Engineer->>CursorIDE: Cursor Agent履歴確認
@@ -461,9 +467,9 @@ sequenceDiagram
 4. 並列処理:
    - Google Docs APIで議事録テキスト取得
    - 録画からスクリーンショット自動抽出
-5. Meeting名からプロジェクト名を自動抽出
+5. Meeting名からプロジェクト名とscopeを自動抽出（`<ProjectName>_<scope>_<title>`形式）
 6. 議事録とスクリーンショットを統合
-7. GitHub に保存: `pj/{ProjectName}/Docs/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}.md` + `images/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}/`
+7. GitHub に保存: `{TargetDir}/Docs/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}.md` + `images/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}/`
 8. Google DocsにGitHubリンクを追記
 
 **所要時間**: 3-10分（録画の長さに依存）
@@ -527,6 +533,17 @@ sequenceDiagram
 
 ### シーケンス5: 議事録処理履歴管理からコード生成までの自動化フロー
 **目的**: 議事録更新を検知し、**未処理の議事録のみ**を自動でコード生成  
+
+**Meeting名形式**: `<ProjectName>_<scope>_<title>`
+- 例: `ProjectAlpha_frontend_LoginUI`, `ProjectAlpha_backend_API`, `ProjectAlpha_all_Architecture`
+
+**scopeと対象ディレクトリ**:
+- `frontend`: フロントエンドミーティング → `frontend/` 配下のコード生成
+- `backend`: バックエンドミーティング → `backend/` 配下のコード生成
+- `test`: テストミーティング → `test/` 配下のコード生成
+- `all`: 開発全体ミーティング → プロジェクト全体のコード生成
+- `management`: マネージャーミーティング → ドキュメント生成のみ（コード生成なし）
+
 **主要ステップ**:
 1. GitHub WebhookでDoc更新を検知
 2. **処理履歴チェック**: データベースで処理済み議事録リストを確認
@@ -548,17 +565,24 @@ sequenceDiagram
 {
   "project_id": "project_abc123",
   "project_name": "ProjectA",
+  "repository_url": "github.com/supertask/ProjectA",
   "cursor_session_id": "session_abc123xyz",
   "processed_documents": [
     {
       "doc_filename": "Doc-meet_abc123-20241027_140000.md",
+      "meeting_name": "ProjectA_backend_API",
+      "scope": "backend",
+      "target_directory": "backend",
       "processed_at": "2024-10-27T14:05:00Z",
-      "pr_url": "https://github.com/org/ProjectA/pull/123"
+      "pr_url": "https://github.com/supertask/ProjectA/pull/123"
     },
     {
       "doc_filename": "Doc-meet_def456-20241028_150000.md",
+      "meeting_name": "ProjectA_frontend_LoginUI",
+      "scope": "frontend",
+      "target_directory": "frontend",
       "processed_at": "2024-10-28T15:08:00Z",
-      "pr_url": "https://github.com/org/ProjectA/pull/124"
+      "pr_url": "https://github.com/supertask/ProjectA/pull/124"
     }
   ]
 }
@@ -631,17 +655,18 @@ RealworldAgent検知（Webhook）
       ├─ Vision API（視覚分析）
       └─ マルチモーダルLLM（重要度判定）
       ↓
-議事録 + スクショ統合
+議事録 + スクショ統合 + scope判定
       ↓
-GitHub保存（pj/{ProjectName}/Docs/Doc-{MeetingID}-{DateTime}.md）
-  + 画像保存（images/Doc-{MeetingID}-{DateTime}/）
+GitHub保存（{TargetDir}/Docs/Doc-{MeetingID}-{DateTime}.md）
+  ※Meeting名: <ProjectName>_<scope>_<title>
+  + 画像保存（{TargetDir}/Docs/images/Doc-{MeetingID}-{DateTime}/）
   + Google Docs更新（GitHubリンク追記）
       ↓
 Doc差分検出
       ↓
-Cursor Agent（コード生成/更新）
+Cursor Agent（コード生成/更新、対象ディレクトリ内）
       ↓
-GitHub PR作成（pj/{ProjectName}/feature/）
+GitHub PR作成（{TargetDir}/feature/update-from-{MeetingID}）
 ```
 
 ### 役割分担
@@ -807,7 +832,7 @@ model Project {
   name              String
   description       String?
   cursorSessionId   String?     // Cursor Agent セッションID
-  repositoryUrl     String
+  repositoryUrl     String      // github.com/supertask/<プロジェクト名>
   documents         Document[]
   processingHistory ProcessingHistory[]
   createdAt         DateTime    @default(now())
@@ -817,6 +842,9 @@ model Document {
   id                String               @id @default(uuid())
   projectId         String
   meetingId         String
+  meetingName       String               // <ProjectName>_<scope>_<title>
+  scope             String               // frontend/backend/test/all/management
+  targetDirectory   String               // frontend/backend/test など
   filename          String               // Doc-{MeetingID}-{DateTime}.md
   googleDriveUrl    String               // Google Drive議事録URL
   githubUrl         String               // GitHub Doc URL
@@ -832,7 +860,7 @@ model ProcessingHistory {
   projectId   String
   documentId  String
   status      String   // processed/skipped
-  prUrl       String?  // GitHub PR URL
+  prUrl       String?  // GitHub PR URL (モノレポ内の該当ディレクトリ)
   processedAt DateTime @default(now())
   project     Project  @relation(fields: [projectId], references: [id])
   document    Document @relation(fields: [documentId], references: [id])

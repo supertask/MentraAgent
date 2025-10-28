@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>コード生成状況 - RealworldAgent</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <!-- App Bar (簡略版) -->
+  <header class="app-bar">
+    <div class="app-bar-left">
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="メニュー">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <a href="dashboard.html" class="app-bar-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+        </svg>
+        <span class="app-bar-logo-text">RealworldAgent</span>
+      </a>
+      <div class="project-selector">
+        <button class="project-selector-btn" id="projectSelectorBtn">
+          <span class="project-name">Project Alpha</span>
+          <svg class="dropdown-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="project-dropdown" id="projectDropdown">
+          <div class="project-dropdown-header">
+            <input type="text" class="project-search" placeholder="プロジェクトを検索" id="projectSearch">
+          </div>
+          <div class="project-list" id="projectListContainer"></div>
+          <div class="project-dropdown-footer">
+            <a href="projects.html" class="btn-new-project">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              新しいプロジェクト
+            </a>
+            <a href="projects.html" class="btn-project-list">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              プロジェクト一覧
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="app-bar-right">
+      <button class="icon-btn" id="notificationBtn" aria-label="通知">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span class="notification-badge">3</span>
+      </button>
+      <div class="notification-dropdown" id="notificationDropdown">
+        <div class="notification-header">
+          <h3>通知</h3>
+          <button class="btn-text">すべて表示</button>
+        </div>
+        <div class="notification-content"></div>
+      </div>
+      <button class="icon-btn" id="settingsBtn" aria-label="設定">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="5" r="2"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+          <circle cx="12" cy="19" r="2"></circle>
+        </svg>
+      </button>
+      <div class="settings-dropdown" id="settingsDropdown">
+        <a href="settings.html" class="dropdown-item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M12 1v6m0 6v6m5.657-13.657l-4.243 4.243m0 5.657l4.243 4.243M23 12h-6m-6 0H1m18.364-5.657l-4.243 4.243m0 5.657l4.243 4.243"></path>
+          </svg>
+          <span>設定</span>
+        </a>
+      </div>
+      <button class="account-btn" id="accountBtn" aria-label="アカウント">
+        <img src="https://via.placeholder.com/32" alt="アカウント" class="account-avatar">
+      </button>
+      <div class="account-dropdown" id="accountDropdown">
+        <div class="account-info">
+          <img src="https://via.placeholder.com/48" alt="アカウント" class="account-avatar-large">
+          <div class="account-details">
+            <div class="account-name">Tasuku TAKAHASHI</div>
+            <div class="account-email">lightfox.task@gmail.com</div>
+            <a href="#" class="account-privacy-link">プライバシー</a>
+          </div>
+        </div>
+        <div class="dropdown-divider"></div>
+        <a href="#" class="dropdown-item"><span>Google アカウント</span></a>
+        <div class="dropdown-divider"></div>
+        <a href="#" class="dropdown-item"><span>ログアウト</span></a>
+      </div>
+    </div>
+  </header>
+
+    <!-- ハンバーガーメニュー（サイドバー） -->
+  <nav class="hamburger-menu" id="hamburgerMenu">
+    <div class="hamburger-menu-section">
+      <h3 class="hamburger-menu-title">ダッシュボード</h3>
+      <a href="dashboard.html" class="hamburger-menu-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        </svg>
+        <span>ホーム</span>
+      </a>
+    </div>
+    <div class="hamburger-menu-divider"></div>
+    <div class="hamburger-menu-section">
+      <h3 class="hamburger-menu-title">ミーティング</h3>
+      <a href="meetings.html" class="hamburger-menu-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+        </svg>
+        <span>ミーティング一覧</span>
+      </a>
+      <a href="video-analysis.html" class="hamburger-menu-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+        </svg>
+        <span>動画解析状況</span>
+      </a>
+      <a href="processing-status.html" class="hamburger-menu-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+        </svg>
+        <span>議事録処理状況</span>
+      </a>
+    </div>
+    <div class="hamburger-menu-divider"></div>
+    <div class="hamburger-menu-section">
+      <h3 class="hamburger-menu-title">コード生成</h3>
+      <a href="code-generation.html" class="hamburger-menu-item active">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        <span>コード生成状況</span>
+      </a>
+      <a href="pull-requests.html" class="hamburger-menu-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"></path>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        <span>PR確認</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="overlay" id="overlay"></div>
+
+  <!-- メインコンテンツ -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">コード生成状況</h1>
+      <p class="page-subtitle">Cursor Agent Background API実行状況</p>
+    </div>
+
+    <!-- コード生成情報カード -->
+    <div class="card mb-32" id="codeGenInfo">
+      <!-- JavaScriptで動的に生成 -->
+    </div>
+
+    <div class="grid grid-2">
+      <!-- 生成ファイル一覧 -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">生成ファイル一覧</h2>
+          <p class="card-subtitle">作成・変更されたファイル</p>
+        </div>
+        <div class="card-body" id="generatedFiles">
+          <!-- JavaScriptで動的に生成 -->
+        </div>
+      </div>
+
+      <!-- リアルタイムログ -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">実行ログ</h2>
+          <p class="card-subtitle">Cursor Agentの処理状況</p>
+        </div>
+        <div class="card-body">
+          <div class="log-viewer" id="logViewer">
+            <!-- JavaScriptで動的に生成 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/mock-data.js"></script>
+  <script src="assets/common.js"></script>
+  <script>
+    // URLからコード生成IDを取得（デフォルトは処理中のもの）
+    const codeGenId = RWACommon.getQueryParam('id') || 'codegen_002';
+    const codeGen = mockCodeGeneration.find(cg => cg.id === codeGenId);
+    
+    // プロジェクトリストを生成（App Bar用）
+    function renderProjectList() {
+      const container = document.getElementById('projectListContainer');
+      if (!container) return;
+      
+      container.innerHTML = mockProjects.map(project => `
+        <div class="project-item ${project.id === 'project-alpha-001' ? 'active' : ''}" data-project-id="${project.id}">
+          <div class="project-item-icon">${project.id === 'project-alpha-001' ? '✓' : '📁'}</div>
+          <div class="project-item-content">
+            <div class="project-item-name">${project.name}</div>
+            <div class="project-item-type">プロジェクト</div>
+          </div>
+          <div class="project-item-id">ID: ${project.id}</div>
+          <button class="project-item-star">☆</button>
+        </div>
+      `).join('');
+    }
+    
+    // コード生成情報を表示
+    function renderCodeGenInfo() {
+      const container = document.getElementById('codeGenInfo');
+      if (!container || !codeGen) return;
+      
+      const project = MockDataHelpers.getProjectById(codeGen.projectId);
+      // 元になった議事録を取得
+      const processingHistory = mockProcessingHistory.find(p => p.documentId === codeGen.documentId);
+      const meeting = mockMeetings.find(m => {
+        if (!processingHistory) return false;
+        const docFilename = `Doc-${m.id}-${m.date.replace(/[-:TZ]/g, '').slice(0, 15)}.md`;
+        return docFilename === processingHistory.documentFilename;
+      });
+      
+      // Cursor Agent APIのURL（実際のAPIエンドポイント）
+      const cursorAgentUrl = `https://api.cursor.com/sessions/${codeGen.cursorSessionId}`;
+      
+      container.innerHTML = `
+        <div class="flex items-center gap-16 mb-24">
+          <span style="font-size: 48px;">⚙️</span>
+          <div style="flex: 1;">
+            <div class="flex items-center gap-8 mb-8">
+              <h2 class="card-title" style="margin: 0;">${project.name}</h2>
+              ${renderScopeBadge(codeGen.scope)}
+              <span class="status-badge status-badge-${codeGen.status === 'completed' ? 'completed' : 'processing'}">
+                <span class="status-dot status-dot-${codeGen.status === 'completed' ? 'completed' : 'processing'}"></span>
+                ${codeGen.status === 'completed' ? '完了' : '処理中'}
+              </span>
+            </div>
+            <div class="flex items-center gap-16">
+              <p class="card-subtitle" style="margin: 0;">Cursor Agent セッション: <span style="font-family: monospace;">${codeGen.cursorSessionId}</span></p>
+              <a href="${cursorAgentUrl}" class="text-primary-light" style="font-size: 13px; text-decoration: none;" target="_blank" onclick="alert('Cursor Agent API（未実装）'); return false;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                Background Agent
+              </a>
+            </div>
+          </div>
+          ${codeGen.status === 'completed' ? `
+            <a href="pull-requests.html" class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+              PRを確認
+            </a>
+          ` : ''}
+        </div>
+        
+        ${processingHistory && meeting ? `
+          <div style="padding: 16px; background: var(--bg-darker); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 24px;">
+            <div class="flex items-center justify-between">
+              <div style="flex: 1;">
+                <div class="text-tertiary" style="font-size: 12px; margin-bottom: 4px;">元になった議事録</div>
+                <div class="text-primary" style="font-size: 14px; font-weight: 500;">${processingHistory.documentFilename}</div>
+                <div class="text-secondary" style="font-size: 13px; margin-top: 4px;">${meeting.meetingName} • ${MockDataHelpers.formatDateTime(meeting.date)}</div>
+              </div>
+              <a href="meetings.html?id=${meeting.id}" class="btn btn-ghost btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+                ミーティング詳細
+              </a>
+            </div>
+          </div>
+        ` : ''}
+        
+        <div class="grid grid-3">
+          <div>
+            <div class="text-tertiary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">開始時刻</div>
+            <div class="text-secondary" style="font-size: 14px; margin-top: 4px;">${MockDataHelpers.formatDateTime(codeGen.startedAt)}</div>
+          </div>
+          ${codeGen.completedAt ? `
+            <div>
+              <div class="text-tertiary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">完了時刻</div>
+              <div class="text-secondary" style="font-size: 14px; margin-top: 4px;">${MockDataHelpers.formatDateTime(codeGen.completedAt)}</div>
+            </div>
+          ` : `
+            <div>
+              <div class="text-tertiary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">経過時間</div>
+              <div class="text-secondary" style="font-size: 14px; margin-top: 4px;">実行中...</div>
+            </div>
+          `}
+          <div>
+            <div class="text-tertiary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">生成ファイル</div>
+            <div class="text-primary" style="font-size: 24px; font-weight: 600; margin-top: 4px;">${codeGen.filesGenerated.length}</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // 生成ファイル一覧を表示
+    function renderGeneratedFiles() {
+      const container = document.getElementById('generatedFiles');
+      if (!container || !codeGen) return;
+      
+      if (codeGen.filesGenerated.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 32px;"><div class="empty-state-description">まだファイルは生成されていません</div></div>';
+        return;
+      }
+      
+      container.innerHTML = codeGen.filesGenerated.map(file => `
+        <div class="list-item">
+          <div class="list-item-icon">📄</div>
+          <div class="list-item-content">
+            <div class="list-item-title" style="font-family: monospace;">${file.path}</div>
+            <div class="list-item-description">
+              <span class="text-success">+${file.linesAdded}</span>
+              ${file.linesDeleted > 0 ? `<span class="text-error">-${file.linesDeleted}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // ログビューアーを表示
+    function renderLogViewer() {
+      const container = document.getElementById('logViewer');
+      if (!container || !codeGen) return;
+      
+      container.innerHTML = ''; // クリア
+      
+      // ログを順次表示（アニメーション）
+      if (codeGen.status === 'processing') {
+        // 処理中の場合は一部のログを表示してストリーミング風に
+        codeGen.logs.forEach((log, index) => {
+          setTimeout(() => {
+            RWACommon.appendLogEntry(container, log);
+          }, index * 300);
+        });
+      } else {
+        // 完了している場合は全て表示
+        codeGen.logs.forEach(log => {
+          RWACommon.appendLogEntry(container, log);
+        });
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!codeGen) {
+        document.querySelector('.main-content').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <div class="empty-state-title">コード生成情報が見つかりません</div>
+            <div class="empty-state-description">指定されたIDのコード生成は存在しません</div>
+            <a href="dashboard.html" class="btn btn-primary mt-24">ダッシュボードに戻る</a>
+          </div>
+        `;
+        return;
+      }
+      
+      renderProjectList();
+      renderCodeGenInfo();
+      renderGeneratedFiles();
+      renderLogViewer();
+    });
+  </script>
+</body>
+</html>
+
