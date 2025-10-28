@@ -862,7 +862,7 @@ graph TB
         end
         
         subgraph MeetingFlow["ミーティングフロー"]
-            MeetingList["ミーティング一覧<br/>📹 Google Meet連携"]
+            MeetingList["ミーティング一覧<br/>📹 プロジェクト内のミーティング"]
             VideoAnalysis["動画解析状況<br/>🎬 処理進捗・ログ"]
         end
         
@@ -889,7 +889,6 @@ graph TB
     ProjectDetail --> CodeGenStatus
     
     MeetingList --> VideoAnalysis
-    
     MeetingList --> ProcessingStatus
     VideoAnalysis --> ProcessingStatus
     ProcessingStatus --> CodeGenStatus
@@ -910,7 +909,7 @@ graph TB
 | **プロジェクト作成** | 新規プロジェクト登録 | ・プロジェクト名入力<br/>・GitHub Repository設定<br/>・初期設定 | GitHub API |
 | **プロジェクト一覧** | 全プロジェクト管理 | ・プロジェクト検索<br/>・ステータス表示<br/>・削除・編集 | API Server |
 | **プロジェクト詳細** | プロジェクト進行状況 | ・議事録履歴（Google Driveリンク）<br/>・生成コード履歴<br/>・Cursor Agentセッション情報 | API Server + GitHub |
-| **ミーティング一覧** | Google Meet録画一覧 | ・Google Drive連携<br/>・録画検出状況<br/>・処理ステータス<br/>・議事録へのDriveリンク | Google Drive API |
+| **ミーティング一覧** | プロジェクト内のGoogle Meet録画一覧 | ・プロジェクトでフィルタリング済み<br/>・録画検出状況<br/>・処理ステータス<br/>・議事録へのDriveリンク<br/>・プロジェクト内のみ表示 | API Server + Google Drive API |
 | **動画解析状況** | スクリーンショット抽出進捗 | ・PySceneDetect進捗<br/>・OCR処理状況<br/>・重要度スコア一覧<br/>・エラーログ | GPU Server |
 | **処理状況画面** | 議事録処理履歴管理 | ・処理済み議事録一覧<br/>・未処理議事録一覧<br/>・処理日時・セッションID<br/>・スキップ/処理ボタン | API Server |
 | **コード生成状況** | Cursor Agent実行進捗 | ・Background API進捗<br/>・リアルタイムログ<br/>・生成ファイル一覧 | Cursor Agent API |
@@ -989,7 +988,8 @@ sequenceDiagram
 sequenceDiagram
     participant User as ユーザー
     participant Dashboard as ダッシュボード
-    participant MeetingList as ミーティング一覧
+    participant ProjectDetail as プロジェクト詳細
+    participant MeetingList as ミーティング一覧<br/>（プロジェクト内）
     participant GoogleDrive as Google Drive<br/>(外部)
     participant VideoAnalysis as 動画解析状況
     participant ProcessingStatus as 処理状況画面
@@ -999,10 +999,13 @@ sequenceDiagram
     Note over User: Google Meetでミーティング実施<br/>（バックグラウンドで自動処理）
     
     User->>Dashboard: ダッシュボード確認
-    Dashboard-->>User: 「新規ミーティング検出」通知表示
+    Dashboard-->>User: 「新規ミーティング検出」通知表示<br/>ProjectA: 新しいミーティング
     
-    User->>MeetingList: ミーティング一覧へ
-    MeetingList-->>User: 処理中のミーティング表示<br/>「録画検出 → 動画解析中」<br/>+ 議事録Driveリンク
+    User->>ProjectDetail: プロジェクト詳細へ
+    ProjectDetail-->>User: プロジェクト情報・進行状況表示
+    
+    User->>MeetingList: 「ミーティング一覧」をクリック
+    MeetingList-->>User: 処理中のミーティング表示<br/>【ProjectA内のみ】<br/>「録画検出 → 動画解析中」<br/>+ 議事録Driveリンク<br/>+ プロジェクト内のミーティングのみ表示
     
     opt 議事録確認（外部サービス）
         User->>GoogleDrive: 議事録Driveリンクをクリック
@@ -1015,12 +1018,12 @@ sequenceDiagram
     Note over VideoAnalysis: 処理完了後
     
     User->>ProcessingStatus: 処理状況画面へ
-    ProcessingStatus-->>User: ・議事録一覧表示<br/>・Doc-20241027_140000: ✅処理済み<br/>・Doc-20241028_150000: ⏳未処理<br/>・Doc-20241029_160000: ⏳未処理
+    ProcessingStatus-->>User: ・【ProjectA】の議事録一覧表示<br/>・Doc-20241027_140000: ✅処理済み<br/>・Doc-20241028_150000: ⏳未処理<br/>・Doc-20241029_160000: ⏳未処理
     
     Note over ProcessingStatus: システムは未処理の議事録のみを<br/>Cursor Agent APIに送信
     
     User->>CodeGenStatus: コード生成状況確認
-    CodeGenStatus-->>User: ・Cursor Agent進捗<br/>・リアルタイムログ<br/>・生成ファイル一覧
+    CodeGenStatus-->>User: ・【ProjectA】のCursor Agent進捗<br/>・リアルタイムログ<br/>・生成ファイル一覧
     
     Note over CodeGenStatus: コード生成完了後
     
