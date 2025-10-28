@@ -126,18 +126,6 @@
         </svg>
         <span>ミーティング一覧</span>
       </a>
-      <a href="video-analysis.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-        </svg>
-        <span>動画解析状況</span>
-      </a>
-      <a href="processing-status.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
-        </svg>
-        <span>議事録処理状況</span>
-      </a>
     </div>
     <div class="hamburger-menu-divider"></div>
     <div class="hamburger-menu-section">
@@ -149,13 +137,6 @@
         </svg>
         <span>コード生成状況</span>
       </a>
-      <a href="pull-requests.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 11l3 3L22 4"></path>
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-        </svg>
-        <span>PR確認</span>
-      </a>
     </div>
   </nav>
 
@@ -165,7 +146,7 @@
   <main class="main-content">
     <div class="page-header">
       <h1 class="page-title">ミーティング一覧</h1>
-      <p class="page-subtitle">Google Meetミーティングと処理状況</p>
+      <p class="page-subtitle">オンライン（Google Meet）・対面（Mentra Glass/io）ミーティングと処理状況</p>
     </div>
 
     <!-- フィルター -->
@@ -183,15 +164,22 @@
       </div>
     </div>
 
-    <!-- Scope Filter -->
+    <!-- Scope & Type Filter -->
     <div class="filter-bar">
       <label for="scopeFilter">Scope:</label>
       <select id="scopeFilter" class="scope-filter" onchange="applyScopeFilter()">
-        <option value="all_scopes">すべてのscope</option>
+        <option value="all_scopes">すべて</option>
         <option value="frontend">フロントエンド</option>
         <option value="backend">バックエンド</option>
         <option value="test">テスト</option>
         <option value="all">全体</option>
+        <option value="management">マネジメント</option>
+      </select>
+      <label for="meetingTypeFilter" style="margin-left: 24px;">タイプ:</label>
+      <select id="meetingTypeFilter" class="scope-filter" onchange="applyMeetingTypeFilter()">
+        <option value="all_types">すべて</option>
+        <option value="online">オンライン</option>
+        <option value="in_person">対面</option>
         <option value="management">マネジメント</option>
       </select>
     </div>
@@ -207,6 +195,7 @@
   <script>
     let currentFilter = 'all';
     let currentScopeFilter = 'all_scopes';
+    let currentMeetingTypeFilter = 'all_types';
     
     // プロジェクトリストを生成（App Bar用）
     function renderProjectList() {
@@ -243,6 +232,11 @@
         meetings = meetings.filter(m => m.scope === currentScopeFilter);
       }
       
+      // ミーティングタイプフィルタリング
+      if (currentMeetingTypeFilter !== 'all_types') {
+        meetings = meetings.filter(m => m.meetingType === currentMeetingTypeFilter);
+      }
+      
       if (meetings.length === 0) {
         grid.innerHTML = `
           <div class="empty-state">
@@ -263,6 +257,8 @@
                 <div class="flex items-center gap-8 mb-8">
                   <h2 class="card-title" style="margin: 0;">${meeting.meetingName}</h2>
                   ${renderScopeBadge(meeting.scope)}
+                  ${renderMeetingTypeBadge(meeting.meetingType)}
+                  ${meeting.deviceType ? renderDeviceTypeBadge(meeting.deviceType) : ''}
                   <span class="status-badge status-badge-${meeting.status}">
                     <span class="status-dot status-dot-${meeting.status}"></span>
                     ${meeting.status === 'completed' ? '完了' : '処理中'}
@@ -273,10 +269,14 @@
             </div>
           </div>
           <div class="card-body">
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;">
               <div>
                 <div class="text-tertiary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">日時</div>
                 <div class="text-secondary" style="font-size: 14px;">${MockDataHelpers.formatDateTime(meeting.date)}</div>
+              </div>
+              <div>
+                <div class="text-tertiary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">処理時間</div>
+                <div class="text-secondary" style="font-size: 14px;">${meeting.processingTime || '-'}</div>
               </div>
               <div>
                 <div class="text-tertiary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">スクリーンショット</div>
@@ -297,36 +297,46 @@
             ` : ''}
           </div>
           <div class="card-footer">
-            <div class="flex gap-8">
-              ${meeting.transcriptUrl ? `
-                <a href="${meeting.transcriptUrl}" class="btn btn-ghost btn-sm" target="_blank" onclick="event.stopPropagation()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                  </svg>
-                  Google Docs議事録
-                </a>
-              ` : ''}
-              ${meeting.githubDocUrl ? `
-                <a href="${meeting.githubDocUrl}" class="btn btn-ghost btn-sm" target="_blank" onclick="event.stopPropagation()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                  </svg>
-                  GitHub仕様書
-                </a>
-              ` : ''}
-              ${meeting.status === 'processing' ? `
-                <button class="btn btn-primary btn-sm" onclick="window.location.href='video-analysis.html?id=${meeting.id}'">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="flex gap-8" style="justify-content: space-between; align-items: center;">
+              <div class="flex gap-8">
+                ${meeting.meetingType === 'online' && meeting.transcriptUrl ? `
+                  <a href="${meeting.transcriptUrl}" class="btn btn-ghost btn-sm" target="_blank">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    Google Docs
+                  </a>
+                ` : ''}
+                ${meeting.meetingType === 'in_person' && meeting.realtimeProcessing ? `
+                  <span class="realtime-indicator">
+                    リアルタイム処理
+                  </span>
+                ` : ''}
+                ${meeting.githubDocUrl ? `
+                  <a href="${meeting.githubDocUrl}" class="btn btn-ghost btn-sm" target="_blank">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    GitHub
+                  </a>
+                ` : ''}
+              </div>
+              <button class="btn ${meeting.status === 'processing' ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="window.location.href='meeting-detail.html?id=${meeting.id}'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  ${meeting.status === 'processing' ? `
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  ` : `
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                  解析状況を表示
-                </button>
-              ` : ''}
+                  `}
+                </svg>
+                ${meeting.status === 'processing' ? '処理状況を見る' : '詳細を見る'}
+              </button>
             </div>
           </div>
         </div>
@@ -359,6 +369,27 @@
       const scopeFilter = document.getElementById('scopeFilter');
       currentScopeFilter = scopeFilter.value;
       renderMeetingsGrid();
+    }
+    
+    // ミーティングタイプフィルターを適用
+    function applyMeetingTypeFilter() {
+      const meetingTypeFilter = document.getElementById('meetingTypeFilter');
+      currentMeetingTypeFilter = meetingTypeFilter.value;
+      renderMeetingsGrid();
+    }
+    
+    // ミーティングタイプバッジを生成
+    function renderMeetingTypeBadge(meetingType) {
+      const displayName = MockDataHelpers.getMeetingTypeDisplayName(meetingType);
+      const badgeClass = MockDataHelpers.getMeetingTypeBadgeClass(meetingType);
+      return `<span class="${badgeClass}">${displayName}</span>`;
+    }
+    
+    // デバイスタイプバッジを生成
+    function renderDeviceTypeBadge(deviceType) {
+      const displayName = MockDataHelpers.getDeviceTypeDisplayName(deviceType);
+      const icon = MockDataHelpers.getDeviceTypeIcon(deviceType);
+      return `<span class="device-type-badge"><span class="device-type-icon">${icon}</span>${displayName}</span>`;
     }
     
     document.addEventListener('DOMContentLoaded', () => {

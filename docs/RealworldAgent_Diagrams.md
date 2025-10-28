@@ -4,7 +4,13 @@
 
 **「ミーティングするだけで、AIが全オフィス作業を自動実行する世界」**
 
-RealworldAgentは、Google Meetのミーティングから**意思決定・タスク・要求を自動抽出**し、**AIエージェントが人間の作業を完全自動化**するシステムです。
+RealworldAgentは、Google Meetなどのオンラインミーティングや対面での会話から**意思決定・タスク・要求を自動抽出**し、**AIエージェントが人間の作業を完全自動化**するシステムです。
+
+### 対応デバイス
+- 🖥️ **オンライン**: Google Meet（音声・画面共有）- 録画後処理
+- 👓 **対面**: [Mentra Glass](https://mentraglass.com/)（GPU非搭載スマートグラス）- リアルタイム処理
+- 📹 **対面**: ioデバイス（Jony Ive × OpenAIのカメラ・音声AIデバイス）- リアルタイム処理
+- ☁️ **処理**: GPU搭載サーバー（Modal）でリアルタイム推論
 
 ### 自動化される作業例
 - ✅ **ソフトウェア開発**: コード生成・レビュー・デプロイ
@@ -15,9 +21,15 @@ RealworldAgentは、Google Meetのミーティングから**意思決定・タ�
 
 ### システムフロー概要
 ```
-Google Meetミーティング
+オンラインミーティング（Google Meet）/ 対面ミーティング（Mentra Glass, ioデバイス）
+    ↓
+音声・映像を解析
+  - オンライン: 録画後に一括処理（3-10分）
+  - 対面: リアルタイムストリーム処理（即座）
     ↓
 【誰が・何を要求・どう決定・期限は？】を自動抽出
+    ↓
+現場や会話から仕様書を自動生成
     ↓
 AIエージェントが自動実行
     ↓
@@ -29,9 +41,15 @@ AIエージェントが自動実行
 
 ---
 
-## 技術実装詳細（現バージョン: Google Meet録画ベース）
+## 技術実装詳細（現バージョン）
 
-**現在の実装**: ミーティング録画からコード生成までを自動化
+**現在の実装**: 
+- **オンライン**: Google Meet録画からコード生成までを自動化（録画後処理）
+- **対面**: Mentra Glass/ioデバイスからコード生成までをリアルタイム自動化
+
+**処理方式の違い**:
+- **オンライン（Google Meet）**: 録画後に一括処理（3-10分）- 高精度な議事録・スクリーンショット抽出
+- **対面（Mentra Glass/io）**: リアルタイムストリーム処理（即座）- GPU非搭載デバイス + Modal GPU Server連携
 
 **将来の拡張**: メール送信・営業活動・タスク管理等の全オフィス作業へ展開
 
@@ -42,13 +60,19 @@ AIエージェントが自動実行
 ```mermaid
 graph TB
     subgraph GoogleServices["Google Services"]
-        GoogleMeet["📹 Google Meet"]
+        GoogleMeet["📹 Google Meet<br/>(オンライン)"]
         GoogleDrive["☁️ Google Drive"]
+    end
+    
+    subgraph InPersonDevices["対面デバイス"]
+        MentraGlass["👓 Mentra Glass"]
+        IoDevice["📹 ioデバイス"]
     end
     
     subgraph RWA["RealworldAgent"]
         UC1["🆕 プロジェクト作成"]
         UC2["📝 ミーティング議事録<br/>確認"]
+        ModalGPU["☁️ Modal GPU Server<br/>(リアルタイム処理)"]
     end
     
     subgraph GitHub["GitHub"]
@@ -56,15 +80,23 @@ graph TB
         UC4["📋 仕様書確認"]
     end
     
-    User["👥 ミーティング参加者"]
+    UserOnline["👥 オンライン参加者"]
+    UserInPerson["👥 対面参加者"]
     Engineer["👨‍💻 エンジニア"]
     
-    User -->|"参加・録画"| GoogleMeet
+    UserOnline -->|"参加・録画"| GoogleMeet
     GoogleMeet -->|"録画保存"| GoogleDrive
     GoogleDrive -->|"自動検知"| RWA
     
-    User -->|"実行"| UC1
-    User -->|"確認"| UC2
+    UserInPerson -->|"装着・録画"| MentraGlass
+    UserInPerson -->|"設置・録画"| IoDevice
+    MentraGlass -->|"リアルタイム<br/>ストリーム"| ModalGPU
+    IoDevice -->|"リアルタイム<br/>ストリーム"| ModalGPU
+    ModalGPU -->|"即座に処理"| RWA
+    
+    UserOnline -->|"実行"| UC1
+    UserOnline -->|"確認"| UC2
+    UserInPerson -->|"確認"| UC2
     
     Engineer -->|"確認"| UC4
     Engineer -->|"確認"| UC3
@@ -82,7 +114,8 @@ graph TB
 
 | アクター | 説明 | 確認可能な情報 |
 |---------|------|---------|
-| **ミーティング参加者** | Google Meetに参加し、後でGoogle Drive上のGoogle Docsでミーティング議事録を確認できる | Google Drive（議事録・Google Docs） |
+| **オンライン参加者** | Google Meetに参加し、後でGoogle Drive上のGoogle Docsでミーティング議事録を確認できる | Google Drive（議事録・Google Docs） |
+| **対面参加者** | Mentra Glass/ioデバイスを使用して対面ミーティングを実施し、リアルタイムで議事録が生成される | RealworldAgent（リアルタイム議事録） |
 | **エンジニア** | GitHub経由でコードや仕様書の情報を確認・管理 | GitHub（仕様書・コード） |
 
 ---
@@ -91,21 +124,22 @@ graph TB
 
 | # | ユースケース | 説明 | アクター | 場所 |
 |----|------------|------|---------|------|
-| 1 | **プロジェクト作成** | 新しいプロジェクトを作成 | ミーティング参加者 | RealworldAgent |
-| 2 | **Google Meet録画** | Google Meetでミーティング実施・録画 | ミーティング参加者 | Google Meet |
-| 3 | **録画自動検知** | Google Driveに保存された録画を自動検知 | システム | Google Drive → RealworldAgent |
-| 4 | **議事録取得・要求抽出** | Google Meet標準機能で生成された議事録をGoogle Docsから取得し、「誰が・何を要求・どう決定」を抽出（将来実装） | システム | RealworldAgent |
-| 5 | **コード生成/更新** | 仕様書をベースにコード生成（初回）または更新（既存） | システム | GitHub |
-| 6 | **仕様書確認** | GitHub内で仕様書を確認 | エンジニア | GitHub |
-| 7 | **ミーティング議事録確認** | Google Drive上のGoogle Docsで議事録を確認 | ミーティング参加者 | Google Drive |
+| 1 | **プロジェクト作成** | 新しいプロジェクトを作成 | オンライン/対面参加者 | RealworldAgent |
+| 2 | **Google Meet録画（オンライン）** | Google Meetでミーティング実施・録画 | オンライン参加者 | Google Meet |
+| 3 | **録画自動検知（オンライン）** | Google Driveに保存された録画を自動検知 | システム | Google Drive → RealworldAgent |
+| 4 | **リアルタイム録画（対面）** | Mentra Glass/ioデバイスでミーティング実施・リアルタイムストリーム送信 | 対面参加者 | デバイス → Modal GPU Server |
+| 5 | **議事録取得・要求抽出** | 議事録を取得し、「誰が・何を要求・どう決定」を抽出（将来実装） | システム | RealworldAgent |
+| 6 | **コード生成/更新** | 仕様書をベースにコード生成（初回）または更新（既存） | システム | GitHub |
+| 7 | **仕様書確認** | GitHub内で仕様書を確認 | エンジニア | GitHub |
+| 8 | **ミーティング議事録確認** | 議事録を確認（オンライン: Google Docs、対面: RealworldAgent） | オンライン/対面参加者 | Google Drive / RealworldAgent |
 
 ---
 
 ### ユースケース間の関係
 
-**ユースケース遷移**:
+**ユースケース遷移（オンライン）**:
 ```
-ミーティング参加者
+オンライン参加者
     ↓
 [Google Meet録画]
     ↓
@@ -113,23 +147,52 @@ graph TB
     ↓
 [RealworldAgent自動検知]
     ↓
-[議事録生成] → GitHub保存
+[録画後処理・議事録生成] → GitHub保存
+    ↓
+[仕様書確認] (エンジニア)
+    ↓
+[コード生成/更新] (Cursor Agent)
+    
+議事録確認 ← Google Drive
+(オンライン参加者)
+```
+
+**ユースケース遷移（対面）**:
+```
+対面参加者
+    ↓
+[Mentra Glass/ioデバイス装着・設置]
+    ↓
+[リアルタイムストリーム送信]
+    ↓
+[Modal GPU Server - リアルタイム処理]
+    ↓
+[議事録生成（即座）] → GitHub保存
     ↓
 [仕様書確認] (エンジニア)
     ↓
 [コード生成/更新] (Cursor Agent)
     
 議事録確認 ← RealworldAgent
-(ミーティング参加者)
+(対面参加者)
 ```
 
-- **Google Meet録画**: ミーティング参加者がGoogle Meetでミーティング実施・録画
+**オンライン（Google Meet）**:
+- **Google Meet録画**: オンライン参加者がGoogle Meetでミーティング実施・録画
 - **Google Drive保存**: 録画が自動的にGoogle Driveに保存
 - **録画自動検知**: RealworldAgentがGoogle Drive Webhookで録画を検知
-- **議事録生成**: 音声・映像解析→議事録生成→GitHub保存
+- **録画後処理**: 音声・映像解析→議事録生成→GitHub保存（3-10分）
+- **議事録確認**: オンライン参加者がGoogle Drive上のGoogle Docsで議事録を後で確認
+
+**対面（Mentra Glass/io）**:
+- **リアルタイム録画**: 対面参加者がデバイスを装着・設置してミーティング実施
+- **ストリーム送信**: デバイスがModal GPU Serverにリアルタイムストリーム送信
+- **リアルタイム処理**: Modal GPU Serverで音声・映像を即座に解析→議事録生成→GitHub保存
+- **議事録確認**: 対面参加者がRealworldAgent上で議事録を確認
+
+**共通**:
 - **仕様書確認**: エンジニアが GitHub 内で確認（議事録 + スクリーンショット）
 - **コード生成/更新**: 仕様書をベースに、初回はコード生成、2回目以降は差分を検出してコード更新
-- **ミーティング議事録確認**: ミーティング参加者がGoogle Drive上のGoogle Docsで議事録を後で確認
 
 ---
 
@@ -139,38 +202,58 @@ graph TB
 stateDiagram-v2
     [*] --> Idle: システム起動
     
-    Idle --> WatchingDrive: Google Drive監視開始
+    Idle --> WatchingDrive: Google Drive監視開始（オンライン）
+    Idle --> WaitingStream: デバイス接続待機（対面）
     
-    WatchingDrive --> MinutesDocsDetected: 議事録Docs検出
-    WatchingDrive --> RecordingDetected: 録画検出
-    
-    state ProcessingDocs {
-        MinutesDocsDetected --> FetchingGoogleDocs: Google Docs取得
-        FetchingGoogleDocs --> ParsingDocs: 議事録パース
-        ParsingDocs --> DocsComplete: 議事録取得完了
+    state "オンライン処理（録画後）" as OnlineFlow {
+        WatchingDrive --> MinutesDocsDetected: 議事録Docs検出
+        WatchingDrive --> RecordingDetected: 録画検出
+        
+        state ProcessingDocs {
+            MinutesDocsDetected --> FetchingGoogleDocs: Google Docs取得
+            FetchingGoogleDocs --> ParsingDocs: 議事録パース
+            ParsingDocs --> DocsComplete: 議事録取得完了
+        }
+        
+        state ProcessingVideo {
+            RecordingDetected --> DownloadingVideo: 動画ダウンロード
+            DownloadingVideo --> AudioExtraction: 音声トラック抽出
+            AudioExtraction --> SceneDetection: PySceneDetectでシーン検出
+            SceneDetection --> DeepSeekOCR: DeepSeek OCR処理
+            DeepSeekOCR --> VisionAnalysis: Vision分析（図表・UI検出）
+            VisionAnalysis --> ImportanceScoring: 重要度スコアリング
+            ImportanceScoring --> ScreenshotsComplete: スクショ抽出完了
+        }
+        
+        DocsComplete --> WaitingForScreenshots
+        ScreenshotsComplete --> WaitingForDocs
+        
+        WaitingForScreenshots --> IntegratingContent: 両方完了
+        WaitingForDocs --> IntegratingContent: 両方完了
     }
     
-    state ProcessingVideo {
-        RecordingDetected --> DownloadingVideo: 動画ダウンロード
-        DownloadingVideo --> AudioExtraction: 音声トラック抽出
-        AudioExtraction --> SceneDetection: PySceneDetectでシーン検出
-        SceneDetection --> DeepSeekOCR: DeepSeek OCR処理
-        DeepSeekOCR --> VisionAnalysis: Vision分析（図表・UI検出）
-        VisionAnalysis --> ImportanceScoring: 重要度スコアリング
-        ImportanceScoring --> ScreenshotsComplete: スクショ抽出完了
+    state "対面処理（リアルタイム）" as InPersonFlow {
+        WaitingStream --> StreamingDetected: ストリーム検出
+        
+        state RealtimeProcessing {
+            StreamingDetected --> RealtimeAudio: リアルタイム音声認識<br/>(Whisper API)
+            StreamingDetected --> RealtimeVision: リアルタイム映像解析<br/>(DeepSeek OCR + Vision)
+            RealtimeAudio --> RealtimeIntegration: 音声テキスト生成
+            RealtimeVision --> RealtimeIntegration: 重要フレーム抽出
+            RealtimeIntegration --> StreamComplete: ストリーム処理完了
+        }
     }
     
-    DocsComplete --> WaitingForScreenshots
-    ScreenshotsComplete --> WaitingForDocs
-    
-    WaitingForScreenshots --> IntegratingContent: 両方完了
-    WaitingForDocs --> IntegratingContent: 両方完了
-    
-    IntegratingContent --> DeterminingTargetDir: 統合完了
+    IntegratingContent --> DeterminingTargetDir
+    StreamComplete --> DeterminingTargetDir
     
     DeterminingTargetDir --> CommittingDoc: scope判定完了
     
-    CommittingDoc --> UpdatingGoogleDocs: GitHub保存完了
+    CommittingDoc --> UpdatingSource: GitHub保存完了
+    
+    state UpdatingSource <<choice>>
+    UpdatingSource --> UpdatingGoogleDocs: オンライン
+    UpdatingSource --> DetectingDiff: 対面
     
     UpdatingGoogleDocs --> DetectingDiff: Google Docs更新完了
     
@@ -198,8 +281,14 @@ stateDiagram-v2
 
 | 状態 | 説明 | 遷移先 |
 |------|------|--------|
-| **Idle** | 待機状態 | WatchingDrive |
-| **WatchingDrive** | Google Drive監視中 | MinutesDocsDetected / RecordingDetected |
+| **Idle** | 待機状態 | WatchingDrive（オンライン）/ WaitingStream（対面） |
+| **WatchingDrive** | Google Drive監視中（オンライン） | MinutesDocsDetected / RecordingDetected |
+| **WaitingStream** | デバイス接続待機（対面） | StreamingDetected |
+| **StreamingDetected** | リアルタイムストリーム検出（対面） | RealtimeAudio / RealtimeVision |
+| **RealtimeAudio** | リアルタイム音声認識処理（対面） | RealtimeIntegration |
+| **RealtimeVision** | リアルタイム映像解析処理（対面） | RealtimeIntegration |
+| **RealtimeIntegration** | リアルタイム統合処理（対面） | StreamComplete |
+| **StreamComplete** | ストリーム処理完了（対面） | DeterminingTargetDir |
 | **MinutesDocsDetected** | 議事録Docs検出 | FetchingGoogleDocs |
 | **FetchingGoogleDocs** | Google Docs取得中 | ParsingDocs |
 | **ParsingDocs** | 議事録パース中 | DocsComplete |
@@ -216,8 +305,9 @@ stateDiagram-v2
 | **WaitingForDocs** | Docs待機中（スクショ完了済み） | IntegratingContent |
 | **IntegratingContent** | 議事録+スクショ統合中 | DeterminingTargetDir |
 | **DeterminingTargetDir** | scope判定中（Meeting名パース） | CommittingDoc |
-| **CommittingDoc** | GitHub保存中 | UpdatingGoogleDocs |
-| **UpdatingGoogleDocs** | Google Docs更新中 | DetectingDiff |
+| **CommittingDoc** | GitHub保存中 | UpdatingSource |
+| **UpdatingSource** | 更新先判定 | UpdatingGoogleDocs（オンライン）/ DetectingDiff（対面） |
+| **UpdatingGoogleDocs** | Google Docs更新中（オンライン） | DetectingDiff |
 | **DetectingDiff** | Doc差分検出・判定 | FirstDoc / SubsequentDoc |
 | **FirstDoc** | 初回Doc判定 | GeneratingCodeInitial |
 | **SubsequentDoc** | 2回目以降Doc判定 | GeneratingCodeUpdate |
@@ -229,28 +319,42 @@ stateDiagram-v2
 
 ### 重要な分岐点
 
-1. **並列検出（WatchingDrive）**
-   - 議事録Docs検出: Google Docs取得フロー開始
-   - 録画検出: スクリーンショット抽出フロー開始
-   - 両方が完了するまで待機
+1. **オンライン/対面の分岐（Idle）**
+   - オンライン: Google Drive監視開始
+   - 対面: デバイス接続待機
 
-2. **並列処理の同期**
-   - ProcessingDocs: Google Docs → パース → 完了
-   - ProcessingVideo: 
-     - 動画DL → 音声トラック抽出（Whisper API）
-     - PySceneDetectでシーン検出
-     - DeepSeek OCRでテキスト抽出
-     - Vision APIで図表・UI検出
-     - 重要度スコアリング → 完了
-   - 両方完了後にコンテンツ統合へ
+2. **オンライン処理（録画後・並列処理）**
+   - **並列検出（WatchingDrive）**
+     - 議事録Docs検出: Google Docs取得フロー開始
+     - 録画検出: スクリーンショット抽出フロー開始
+   - **並列処理の同期**
+     - ProcessingDocs: Google Docs → パース → 完了
+     - ProcessingVideo: 
+       - 動画DL → 音声トラック抽出（Whisper API）
+       - PySceneDetectでシーン検出
+       - DeepSeek OCRでテキスト抽出
+       - Vision APIで図表・UI検出
+       - 重要度スコアリング → 完了
+     - 両方完了後にコンテンツ統合へ
 
-3. **Doc判定**
+3. **対面処理（リアルタイム・並列処理）**
+   - **ストリーム検出（StreamingDetected）**
+     - リアルタイム音声認識: Whisper APIで即座に文字起こし
+     - リアルタイム映像解析: DeepSeek OCR + Vision APIで重要フレーム抽出
+   - **リアルタイム統合**
+     - 音声テキスト + 重要フレーム → 即座に統合 → GitHub保存
+
+4. **更新先判定（UpdatingSource）**
+   - オンライン: Google Docs更新 → Doc差分検出
+   - 対面: 直接Doc差分検出（Google Docs更新なし）
+
+5. **Doc判定**
    - 初回Doc: すべての内容でコード生成
    - 2回目以降: 差分検出後にコード更新
 
 ---
 
-## 3. Google Meet議事録取得 → GitHub保存フロー
+## 3. Google Meet議事録取得 → GitHub保存フロー（オンライン）
 
 ```mermaid
 sequenceDiagram
@@ -307,7 +411,7 @@ sequenceDiagram
 
 ---
 
-## 4. 動画からスクリーンショット自動抽出フロー（改善版）
+## 4. 動画からスクリーンショット自動抽出フロー（オンライン - 改善版）
 
 ```mermaid
 sequenceDiagram
@@ -637,6 +741,8 @@ sequenceDiagram
 6. **Google Docs自動更新**: GitHubリンクを議事録に追記して連携
 
 ### データフロー
+
+**オンライン（Google Meet）- 録画後処理**:
 ```
 Google Meet会議
   ├─ 議事録機能（Google Docs自動生成）
@@ -646,7 +752,7 @@ Google Drive保存（Docs + 録画）
       ↓
 RealworldAgent検知（Webhook）
       ↓
-並列処理
+並列処理（録画後・3-10分）
   ├─ Google Docs取得
   └─ スクリーンショット抽出
       ├─ PySceneDetect（シーン検出）
@@ -669,16 +775,54 @@ Cursor Agent（コード生成/更新、対象ディレクトリ内）
 GitHub PR作成（{TargetDir}/feature/update-from-{MeetingID}）
 ```
 
-### 役割分担
-- **ミーティング参加者**: Google Meetでミーティング実施、後でGoogle Drive上のGoogle Docsで議事録確認
-- **エンジニア**: GitHub/Cursorでコード確認・仕様書確認、PR承認
-- **システム**: 完全自動処理（議事録検知→GitHub保存→コード生成）
+**対面（Mentra Glass/io）- リアルタイム処理**:
+```
+対面ミーティング（Mentra Glass/ioデバイス）
+      ↓
+リアルタイムストリーム送信
+  ├─ 音声ストリーム → Modal GPU Server
+  └─ 映像ストリーム → Modal GPU Server
+      ↓
+並列リアルタイム処理（即座）
+  ├─ リアルタイム音声認識（Whisper API）
+  └─ リアルタイム映像解析
+      ├─ リアルタイムシーン検出
+      ├─ DeepSeek OCR（重要シーンのみ）
+      ├─ Vision API（視覚分析）
+      └─ マルチモーダルLLM（重要度判定）
+      ↓
+リアルタイム統合 + scope判定
+      ↓
+GitHub保存（{TargetDir}/Docs/Doc-{MeetingID}-{DateTime}.md）
+  ※Meeting名: <ProjectName>_<scope>_<title>
+  + 画像保存（{TargetDir}/Docs/images/Doc-{MeetingID}-{DateTime}/）
+  （Google Docs更新なし）
+      ↓
+Doc差分検出
+      ↓
+Cursor Agent（コード生成/更新、対象ディレクトリ内）
+      ↓
+GitHub PR作成（{TargetDir}/feature/update-from-{MeetingID}）
+```
 
-### Google連携の特徴
+### 役割分担
+- **オンライン参加者**: Google Meetでミーティング実施、後でGoogle Drive上のGoogle Docsで議事録確認
+- **対面参加者**: Mentra Glass/ioデバイスを装着・設置してミーティング実施、RealworldAgentで議事録確認
+- **エンジニア**: GitHub/Cursorでコード確認・仕様書確認、PR承認
+- **システム**: 完全自動処理（議事録検知/ストリーム処理→GitHub保存→コード生成）
+
+### Google連携の特徴（オンライン）
 - **Google Meet議事録**: 標準機能で高精度、今後さらに精度向上
 - **Google Docs**: 議事録の一次保存先、GitHubリンクで連携
 - **Google Drive**: Webhook通知で即座に検知
 - **双方向同期**: Google Docs ⇔ GitHub の相互参照可能
+
+### 対面デバイスの特徴
+- **GPU非搭載**: Mentra Glass/ioデバイスはGPU非搭載（軽量・低消費電力）
+- **リアルタイムストリーム**: 音声・映像をModal GPU Serverにリアルタイム送信
+- **即座処理**: ミーティング終了と同時に議事録生成完了
+- **ネットワーク最適化**: H.264/H.265圧縮でストリーミング（録画ダウンロードより軽量）
+- **Modal GPU Server連携**: すべての重い処理（OCR、Vision、LLM）をクラウドGPUで実行
 
 ---
 
@@ -753,10 +897,11 @@ Slack通知: 「全タスク完了しました🎉」
 ### ロードマップ
 ```
 v1.0 (現在) ✅
-  └─ Google Meet → 議事録・スクショ → コード生成
+  ├─ オンライン: Google Meet → 議事録・スクショ → コード生成（録画後処理）
+  └─ 対面: Mentra Glass/io → 議事録・スクショ → コード生成（リアルタイム処理）
 
 v2.0 (次期)
-  └─ 意思決定・タスク抽出エンジン追加
+  └─ 意思決定・タスク抽出エンジン追加（オンライン・対面両対応）
 
 v3.0
   └─ AIエージェント自動実行（メール・資料作成・タスク管理）
@@ -775,7 +920,118 @@ v4.0 (最終形)
 
 ---
 
-## 7. Webアプリケーション構成
+## 7. 対面ミーティング リアルタイム解析フロー
+
+### 7-1. 対面ミーティング全体フロー
+
+```mermaid
+sequenceDiagram
+    participant User as 対面参加者
+    participant Device as Mentra Glass/<br/>ioデバイス
+    participant API as API Server
+    participant GPU as Modal GPU Server
+    participant Whisper as Whisper API<br/>(リアルタイム音声認識)
+    participant DeepSeek as DeepSeek OCR
+    participant Vision as Vision API<br/>(Claude/GPT-4V)
+    participant GitHub as GitHub
+    
+    User->>Device: デバイス装着・起動
+    Device->>API: デバイス接続通知
+    API->>GPU: リアルタイム処理セッション開始
+    
+    User->>Device: 対面ミーティング開始
+    Note over Device: 音声・映像を<br/>リアルタイム録画
+    
+    par リアルタイム音声処理
+        loop 音声ストリーム
+            Device->>GPU: 音声ストリーム送信<br/>(継続的)
+            GPU->>Whisper: リアルタイム文字起こし
+            Whisper-->>GPU: タイムスタンプ付きテキスト
+            GPU->>API: 音声テキスト保存<br/>(バッファリング)
+        end
+    and リアルタイム映像処理
+        loop 映像ストリーム
+            Device->>GPU: 映像ストリーム送信<br/>(継続的)
+            GPU->>GPU: リアルタイムシーン検出<br/>(PySceneDetect相当)
+            
+            alt 重要シーン検出
+                GPU->>DeepSeek: OCR実行<br/>(リアルタイム)
+                DeepSeek-->>GPU: 抽出テキスト + 座標
+                
+                GPU->>Vision: マルチモーダル分析<br/>(図表・コード・UI検出)
+                Vision-->>GPU: 視覚要素分析結果
+                
+                GPU->>GPU: 重要度スコアリング<br/>(OCR + 音声コンテキスト)
+                
+                alt スコア > 0.65
+                    GPU->>API: 重要フレーム保存<br/>(メタデータ付き)
+                end
+            end
+        end
+    end
+    
+    User->>Device: ミーティング終了
+    Device->>API: ストリーム終了通知
+    
+    API->>API: 音声テキスト + 重要フレーム統合
+    API->>API: Meeting名からscopeとディレクトリ判定
+    
+    API->>GitHub: コミット<br/>{TargetDir}/Docs/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}.md
+    API->>GitHub: コミット<br/>{TargetDir}/Docs/images/Doc-{MeetingID}-{YYYYMMDD_HHMMSS}/
+    
+    GitHub-->>API: コミット完了
+    API-->>User: 議事録生成完了通知<br/>(リアルタイム完了)
+```
+
+### 7-2. オンラインと対面の処理方式の違い
+
+| 項目 | オンライン（Google Meet） | 対面（Mentra Glass/io） |
+|------|------------------------|----------------------|
+| **処理タイミング** | 録画後に一括処理 | リアルタイムストリーム処理 |
+| **処理時間** | 3-10分（録画長に依存） | 即座（ストリーム終了時） |
+| **音声認識** | 録音ファイル → Whisper API | リアルタイムストリーム → Whisper API |
+| **シーン検出** | PySceneDetect（一括処理） | リアルタイムシーン検出 |
+| **OCR処理** | 全フレーム候補を一括処理 | 重要シーンのみリアルタイム処理 |
+| **重要度判定** | 全候補フレームを一括スコアリング | 検出シーンごとにリアルタイムスコアリング |
+| **議事録保存先** | Google Docs + GitHub | GitHub（リアルタイム生成） |
+| **デバイス要件** | GPU不要（ブラウザのみ） | GPU非搭載デバイス + Modal GPU Server |
+| **ネットワーク** | 録画ダウンロード（大容量） | ストリーミング（継続的・軽量） |
+| **精度** | 高精度（後処理で最適化） | 高精度（リアルタイムでも同等） |
+
+### 7-3. リアルタイム処理の技術的特徴
+
+**ストリーミング音声認識**:
+- Whisper APIのストリーミングモード利用
+- バッファリング: 音声を30秒単位でバッファリング → API送信
+- タイムスタンプ同期: 映像フレームと音声テキストを時刻で同期
+
+**リアルタイムシーン検出**:
+- PySceneDetectアルゴリズムのリアルタイム実装
+- 適応的閾値: 環境に応じてリアルタイムで閾値調整
+- 候補フレーム即座判定: シーン変化を検出した瞬間にOCR・Vision処理へ
+
+**リアルタイム重要度判定**:
+- 音声コンテキスト: 前後30秒の音声テキストをバッファから取得
+- マルチモーダルLLM: OCRテキスト + 音声 + Vision結果で即座にスコアリング
+- 閾値判定: スコア > 0.65 で即座に保存
+
+**GPU非搭載デバイス + Modal GPU Server連携**:
+- デバイス側: 音声・映像の録画・ストリーム送信のみ
+- Modal GPU Server: すべての重い処理（OCR、Vision、LLM）を実行
+- 低レイテンシ: Modal GPU Serverの高速GPUで即座に処理
+
+**ネットワーク最適化**:
+- 映像圧縮: H.264/H.265でストリーム圧縮
+- 音声圧縮: Opus/AACで低ビットレート
+- バッファリング: ネットワーク遅延に対応
+
+**処理完了タイミング**:
+- オンライン: ミーティング終了 → 録画完了 → ダウンロード → 処理（3-10分後）
+- 対面: ミーティング終了 → ストリーム終了通知 → 統合・保存（即座）
+
+---
+
+## 8. Webアプリケーション構成
 
 ### バックエンド構成
 
@@ -816,14 +1072,16 @@ graph TB
 - Express.js + TypeScript
 - PostgreSQL (Prisma ORM)
 - REST API エンドポイント提供
-- Google Drive Webhook受信
+- Google Drive Webhook受信（オンライン）
+- デバイスストリーム受信（対面）
 - GitHub Webhook受信
 
 **GPU Server** (`services/gpu-server/`):
 - Modal.com でホスティング
 - Python + PySceneDetect
-- 動画処理・スクリーンショット抽出
-- マルチモーダルAI処理
+- 動画処理・スクリーンショット抽出（オンライン - 録画後処理）
+- リアルタイムストリーム処理（対面 - リアルタイム処理）
+- マルチモーダルAI処理（Whisper API、DeepSeek OCR、Vision API）
 
 **データベース** (PostgreSQL):
 ```prisma
@@ -843,10 +1101,11 @@ model Document {
   projectId         String
   meetingId         String
   meetingName       String               // <ProjectName>_<scope>_<title>
+  meetingType       String               // online/in_person
   scope             String               // frontend/backend/test/all/management
   targetDirectory   String               // frontend/backend/test など
   filename          String               // Doc-{MeetingID}-{DateTime}.md
-  googleDriveUrl    String               // Google Drive議事録URL
+  googleDriveUrl    String?              // Google Drive議事録URL（オンラインのみ）
   githubUrl         String               // GitHub Doc URL
   screenshotUrls    Json                 // スクリーンショットURL配列
   processingStatus  String               // pending/processing/processed/skipped
@@ -936,15 +1195,16 @@ graph TB
 | **ダッシュボード** | システム全体の概要表示 | ・最近のミーティング<br/>・進行中のコード生成<br/>・通知一覧 | API Server |
 | **プロジェクト作成** | 新規プロジェクト登録 | ・プロジェクト名入力<br/>・GitHub Repository設定<br/>・初期設定 | GitHub API |
 | **プロジェクト一覧** | 全プロジェクト管理 | ・プロジェクト検索<br/>・ステータス表示<br/>・削除・編集 | API Server |
-| **プロジェクト詳細** | プロジェクト進行状況 | ・議事録履歴（Google Driveリンク）<br/>・生成コード履歴<br/>・Cursor Agentセッション情報 | API Server + GitHub |
-| **ミーティング一覧** | プロジェクト内のGoogle Meet録画一覧 | ・プロジェクトでフィルタリング済み<br/>・録画検出状況<br/>・処理ステータス<br/>・議事録へのDriveリンク<br/>・プロジェクト内のみ表示 | API Server + Google Drive API |
-| **動画解析状況** | スクリーンショット抽出進捗 | ・PySceneDetect進捗<br/>・OCR処理状況<br/>・重要度スコア一覧<br/>・エラーログ | GPU Server |
+| **プロジェクト詳細** | プロジェクト進行状況 | ・議事録履歴（オンライン: Google Driveリンク、対面: RealworldAgent）<br/>・生成コード履歴<br/>・Cursor Agentセッション情報 | API Server + GitHub |
+| **ミーティング一覧** | プロジェクト内のミーティング一覧（オンライン・対面両方） | ・プロジェクトでフィルタリング済み<br/>・ミーティングタイプ表示（オンライン/対面）<br/>・処理ステータス<br/>・議事録リンク（オンライン: Drive、対面: RealworldAgent）<br/>・プロジェクト内のみ表示 | API Server + Google Drive API |
+| **動画解析状況** | スクリーンショット抽出進捗 | ・オンライン: PySceneDetect進捗<br/>・対面: リアルタイム処理進捗<br/>・OCR処理状況<br/>・重要度スコア一覧<br/>・エラーログ | GPU Server |
 | **処理状況画面** | 議事録処理履歴管理 | ・処理済み議事録一覧<br/>・未処理議事録一覧<br/>・処理日時・セッションID<br/>・スキップ/処理ボタン | API Server |
 | **コード生成状況** | Cursor Agent実行進捗 | ・Background API進捗<br/>・リアルタイムログ<br/>・生成ファイル一覧 | Cursor Agent API |
 | **PR確認画面** | 生成されたPRの確認 | ・GitHub PR表示<br/>・差分確認<br/>・承認・却下 | GitHub API |
-| **Google連携設定** | Google OAuth設定 | ・認証フロー<br/>・Drive Webhook設定<br/>・権限管理 | Google OAuth |
+| **Google連携設定** | Google OAuth設定（オンライン） | ・認証フロー<br/>・Drive Webhook設定<br/>・権限管理 | Google OAuth |
 | **GitHub連携設定** | GitHub Token設定 | ・Personal Access Token<br/>・Repository選択<br/>・Webhook設定 | GitHub OAuth |
-| **Webhook設定** | 通知エンドポイント管理 | ・Google Drive Webhook URL<br/>・GitHub Webhook URL<br/>・Secret設定 | API Server |
+| **デバイス連携設定** | 対面デバイス設定 | ・Mentra Glass/ioデバイス登録<br/>・ストリーム接続設定<br/>・Modal GPU Server設定 | API Server |
+| **Webhook設定** | 通知エンドポイント管理 | ・Google Drive Webhook URL（オンライン）<br/>・GitHub Webhook URL<br/>・デバイスストリームエンドポイント（対面）<br/>・Secret設定 | API Server |
 
 ---
 
@@ -988,15 +1248,24 @@ sequenceDiagram
     participant Dashboard as ダッシュボード
     participant GoogleAuth as Google連携設定
     participant GitHubAuth as GitHub連携設定
+    participant DeviceAuth as デバイス連携設定
     participant ProjectCreate as プロジェクト作成
     participant ProjectDetail as プロジェクト詳細
     
     User->>Dashboard: 初回アクセス
     Dashboard-->>User: セットアップガイド表示
     
-    User->>GoogleAuth: Google認証
-    GoogleAuth->>GoogleAuth: OAuth認証フロー
-    GoogleAuth-->>User: 認証完了・Webhook設定
+    alt オンライン設定
+        User->>GoogleAuth: Google認証
+        GoogleAuth->>GoogleAuth: OAuth認証フロー
+        GoogleAuth-->>User: 認証完了・Webhook設定
+    end
+    
+    alt 対面設定
+        User->>DeviceAuth: デバイス連携設定
+        DeviceAuth->>DeviceAuth: Mentra Glass/ioデバイス登録
+        DeviceAuth-->>User: デバイス登録完了・ストリーム設定
+    end
     
     User->>GitHubAuth: GitHub認証
     GitHubAuth->>GitHubAuth: Token設定
@@ -1007,7 +1276,7 @@ sequenceDiagram
     User->>ProjectCreate: 作成実行
     ProjectCreate->>ProjectDetail: プロジェクト詳細へ遷移
     
-    ProjectDetail-->>User: プロジェクト情報・ガイド表示<br/>「Google Meetでミーティングを開始してください」
+    ProjectDetail-->>User: プロジェクト情報・ガイド表示<br/>「Google Meetでミーティングを開始するか、<br/>対面デバイスを装着してください」
 ```
 
 **シナリオ2: ミーティング → コード生成までの自動フロー確認**
@@ -1024,16 +1293,16 @@ sequenceDiagram
     participant CodeGenStatus as コード生成状況
     participant PRView as PR確認画面
     
-    Note over User: Google Meetでミーティング実施<br/>（バックグラウンドで自動処理）
+    Note over User: ミーティング実施<br/>（オンライン: Google Meet / 対面: Mentra Glass/io）<br/>（バックグラウンドで自動処理）
     
     User->>Dashboard: ダッシュボード確認
-    Dashboard-->>User: 「新規ミーティング検出」通知表示<br/>ProjectA: 新しいミーティング
+    Dashboard-->>User: 「新規ミーティング検出」通知表示<br/>ProjectA: 新しいミーティング（オンライン/対面）
     
     User->>ProjectDetail: プロジェクト詳細へ
     ProjectDetail-->>User: プロジェクト情報・進行状況表示
     
     User->>MeetingList: 「ミーティング一覧」をクリック
-    MeetingList-->>User: 処理中のミーティング表示<br/>【ProjectA内のみ】<br/>「録画検出 → 動画解析中」<br/>+ 議事録Driveリンク<br/>+ プロジェクト内のミーティングのみ表示
+    MeetingList-->>User: 処理中のミーティング表示<br/>【ProjectA内のみ】<br/>「オンライン: 録画検出 → 動画解析中」<br/>「対面: リアルタイム処理中」<br/>+ 議事録リンク（オンライン: Drive、対面: RealworldAgent）<br/>+ プロジェクト内のミーティングのみ表示
     
     opt 議事録確認（外部サービス）
         User->>GoogleDrive: 議事録Driveリンクをクリック
@@ -1041,7 +1310,7 @@ sequenceDiagram
     end
     
     User->>VideoAnalysis: 解析状況確認
-    VideoAnalysis-->>User: ・PySceneDetect進捗: 85%<br/>・OCR処理: 完了<br/>・重要度スコアリング: 進行中
+    VideoAnalysis-->>User: オンライン:<br/>・PySceneDetect進捗: 85%<br/>・OCR処理: 完了<br/>・重要度スコアリング: 進行中<br/><br/>対面:<br/>・リアルタイム処理: 進行中<br/>・ストリーム接続: 正常
     
     Note over VideoAnalysis: 処理完了後
     

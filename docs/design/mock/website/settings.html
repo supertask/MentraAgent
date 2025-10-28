@@ -126,18 +126,6 @@
         </svg>
         <span>ミーティング一覧</span>
       </a>
-      <a href="video-analysis.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-        </svg>
-        <span>動画解析状況</span>
-      </a>
-      <a href="processing-status.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
-        </svg>
-        <span>議事録処理状況</span>
-      </a>
     </div>
     <div class="hamburger-menu-divider"></div>
     <div class="hamburger-menu-section">
@@ -148,13 +136,6 @@
           <polyline points="8 6 2 12 8 18"></polyline>
         </svg>
         <span>コード生成状況</span>
-      </a>
-      <a href="pull-requests.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 11l3 3L22 4"></path>
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-        </svg>
-        <span>PR確認</span>
       </a>
     </div>
   </nav>
@@ -294,6 +275,119 @@
         </div>
       </div>
 
+      <!-- デバイス連携設定 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="flex items-center gap-16">
+            <span style="font-size: 48px;">📱</span>
+            <div style="flex: 1;">
+              <h2 class="card-title" style="margin-bottom: 4px;">デバイス連携</h2>
+              <p class="card-subtitle" style="margin: 0;">対面ミーティング用デバイス設定</p>
+            </div>
+            <span class="status-badge status-badge-completed">
+              <span class="status-dot status-dot-completed"></span>
+              接続済み
+            </span>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Mentra Glass -->
+          <div style="margin-bottom: 24px; padding: 16px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+            <div class="flex items-center gap-12 mb-12">
+              <span style="font-size: 32px;">👓</span>
+              <div style="flex: 1;">
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Mentra Glass</h3>
+                <p class="text-secondary" style="font-size: 12px; margin: 0;">${mockUserSettings.devices.mentraGlass.deviceName}</p>
+              </div>
+              <span class="status-badge status-badge-active">
+                <span class="status-dot status-dot-active"></span>
+                ${mockUserSettings.devices.mentraGlass.status === 'active' ? 'アクティブ' : '非アクティブ'}
+              </span>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div class="text-tertiary" style="font-size: 11px; margin-bottom: 4px;">デバイスID</div>
+              <div class="text-secondary" style="font-size: 12px; font-family: monospace;">${mockUserSettings.devices.mentraGlass.deviceId}</div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div class="text-tertiary" style="font-size: 11px; margin-bottom: 4px;">ストリームエンドポイント</div>
+              <div class="text-secondary" style="font-size: 11px; font-family: monospace; word-break: break-all;">${mockUserSettings.devices.mentraGlass.streamEndpoint}</div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div class="text-tertiary" style="font-size: 11px; margin-bottom: 4px;">最終接続</div>
+              <div class="text-secondary" style="font-size: 12px;">${MockDataHelpers.formatRelativeTime(mockUserSettings.devices.mentraGlass.lastConnected)}</div>
+            </div>
+          </div>
+
+          <!-- ioデバイス -->
+          <div style="margin-bottom: 24px; padding: 16px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+            <div class="flex items-center gap-12 mb-12">
+              <span style="font-size: 32px;">📹</span>
+              <div style="flex: 1;">
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">ioデバイス</h3>
+                <p class="text-secondary" style="font-size: 12px; margin: 0;">${mockUserSettings.devices.ioDevice.deviceName}</p>
+              </div>
+              <span class="status-badge status-badge-pending">
+                <span class="status-dot status-dot-pending"></span>
+                ${mockUserSettings.devices.ioDevice.status === 'active' ? 'アクティブ' : '非アクティブ'}
+              </span>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div class="text-tertiary" style="font-size: 11px; margin-bottom: 4px;">デバイスID</div>
+              <div class="text-secondary" style="font-size: 12px; font-family: monospace;">${mockUserSettings.devices.ioDevice.deviceId}</div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div class="text-tertiary" style="font-size: 11px; margin-bottom: 4px;">ストリームエンドポイント</div>
+              <div class="text-secondary" style="font-size: 11px; font-family: monospace; word-break: break-all;">${mockUserSettings.devices.ioDevice.streamEndpoint}</div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div class="text-tertiary" style="font-size: 11px; margin-bottom: 4px;">最終接続</div>
+              <div class="text-secondary" style="font-size: 12px;">${MockDataHelpers.formatRelativeTime(mockUserSettings.devices.ioDevice.lastConnected)}</div>
+            </div>
+          </div>
+
+          <!-- Modal GPU Server -->
+          <div style="margin-bottom: 16px; padding: 16px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px;">
+            <div class="flex items-center gap-12 mb-12">
+              <span style="font-size: 32px;">☁️</span>
+              <div style="flex: 1;">
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Modal GPU Server</h3>
+                <p class="text-secondary" style="font-size: 12px; margin: 0;">リアルタイム処理サーバー</p>
+              </div>
+              <span class="status-badge status-badge-completed">
+                <span class="status-dot status-dot-completed"></span>
+                設定済み
+              </span>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div class="text-tertiary" style="font-size: 11px; margin-bottom: 4px;">エンドポイント</div>
+              <div class="text-secondary" style="font-size: 11px; font-family: monospace; word-break: break-all;">${mockUserSettings.devices.modalGPU.endpoint}</div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <div class="text-tertiary" style="font-size: 11px; margin-bottom: 4px;">APIキー</div>
+              <div class="text-secondary" style="font-size: 12px; font-family: monospace;">${mockUserSettings.devices.modalGPU.apiKey}</div>
+            </div>
+          </div>
+
+          <div class="flex gap-8">
+            <button class="btn btn-secondary btn-sm" onclick="alert('デバイス登録機能（未実装）')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              新規デバイス登録
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="alert('設定編集機能（未実装）')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 1v6m0 6v6m5.657-13.657l-4.243 4.243m0 5.657l4.243 4.243M23 12h-6m-6 0H1m18.364-5.657l-4.243 4.243m0 5.657l4.243 4.243"></path>
+              </svg>
+              設定を編集
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Webhook設定 -->
       <div class="card">
         <div class="card-header">
@@ -311,12 +405,16 @@
         </div>
         <div class="card-body">
           <div style="margin-bottom: 16px;">
-            <div class="text-tertiary" style="font-size: 12px; margin-bottom: 4px;">Google Drive Webhook</div>
-            <div class="text-secondary" style="font-size: 12px; font-family: monospace; word-break: break-all;">${mockUserSettings.google.driveWebhookUrl}</div>
+            <div class="text-tertiary" style="font-size: 12px; margin-bottom: 4px;">Google Drive Webhook（オンライン）</div>
+            <div class="text-secondary" style="font-size: 12px; font-family: monospace; word-break: break-all;">${mockUserSettings.webhooks.googleDrive}</div>
           </div>
           <div style="margin-bottom: 16px;">
             <div class="text-tertiary" style="font-size: 12px; margin-bottom: 4px;">GitHub Webhook</div>
-            <div class="text-secondary" style="font-size: 12px; font-family: monospace; word-break: break-all;">${mockUserSettings.github.webhookUrl}</div>
+            <div class="text-secondary" style="font-size: 12px; font-family: monospace; word-break: break-all;">${mockUserSettings.webhooks.github}</div>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <div class="text-tertiary" style="font-size: 12px; margin-bottom: 4px;">デバイスストリームエンドポイント（対面）</div>
+            <div class="text-secondary" style="font-size: 12px; font-family: monospace; word-break: break-all;">${mockUserSettings.webhooks.deviceStream}</div>
           </div>
           <div class="flex gap-8">
             <button class="btn btn-secondary btn-sm" onclick="alert('Webhook設定機能（未実装）')">

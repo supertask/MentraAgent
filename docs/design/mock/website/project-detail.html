@@ -126,18 +126,6 @@
         </svg>
         <span>ミーティング一覧</span>
       </a>
-      <a href="video-analysis.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-        </svg>
-        <span>動画解析状況</span>
-      </a>
-      <a href="processing-status.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
-        </svg>
-        <span>議事録処理状況</span>
-      </a>
     </div>
     <div class="hamburger-menu-divider"></div>
     <div class="hamburger-menu-section">
@@ -148,13 +136,6 @@
           <polyline points="8 6 2 12 8 18"></polyline>
         </svg>
         <span>コード生成状況</span>
-      </a>
-      <a href="pull-requests.html" class="hamburger-menu-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 11l3 3L22 4"></path>
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-        </svg>
-        <span>PR確認</span>
       </a>
     </div>
   </nav>
@@ -191,21 +172,6 @@
             <h2 class="card-title">議事録処理履歴</h2>
             <p class="card-subtitle">処理済み・未処理の議事録</p>
           </div>
-          <a href="processing-status.html" class="btn btn-ghost btn-sm">詳細を表示</a>
-        </div>
-        <div class="card-body" id="processingHistory">
-          <!-- JavaScriptで動的に生成 -->
-        </div>
-      </div>
-
-      <!-- Pull Request履歴 -->
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h2 class="card-title">Pull Request履歴</h2>
-            <p class="card-subtitle">生成されたコードのPR</p>
-          </div>
-          <a href="pull-requests.html" class="btn btn-ghost btn-sm">すべて表示</a>
         </div>
         <div class="card-body" id="prHistory">
           <!-- JavaScriptで動的に生成 -->
@@ -389,12 +355,12 @@
       `).join('');
     }
     
-    // Cursor Agentセッション情報を表示
+    // Cursor Agentセッション情報を表示（スコープ別）
     function renderCursorSession() {
       const container = document.getElementById('cursorSession');
       if (!container || !project) return;
       
-      if (!project.cursorSessionId) {
+      if (!project.cursorSessions || Object.keys(project.cursorSessions).length === 0) {
         container.innerHTML = `
           <div class="empty-state" style="padding: 32px;">
             <div class="empty-state-description">セッションはまだ開始されていません</div>
@@ -406,39 +372,140 @@
         return;
       }
       
+      const scopes = Object.keys(project.cursorSessions);
+      const firstScope = scopes[0];
+      
       container.innerHTML = `
-        <div style="padding: 16px; background: var(--bg-darker); border-radius: 8px; border: 1px solid var(--border-color);">
-          <div class="flex items-center justify-between mb-16">
-            <div>
-              <div class="text-tertiary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">セッションID</div>
-              <div class="text-primary" style="font-size: 14px; font-weight: 600; margin-top: 4px; font-family: monospace;">${project.cursorSessionId}</div>
-            </div>
-            <span class="status-badge status-badge-active">
-              <span class="status-dot status-dot-active"></span>
-              アクティブ
-            </span>
-          </div>
-          <div class="text-secondary" style="font-size: 13px; margin-bottom: 16px;">
-            このプロジェクトは継続的なCursor Agentセッションを使用しています。<br/>
-            新しい議事録は自動的にこのセッションで処理されます。
-          </div>
-          <div class="flex gap-8">
-            <button class="btn btn-secondary btn-sm" onclick="window.location.href='code-generation.html'">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="16 18 22 12 16 6"></polyline>
-                <polyline points="8 6 2 12 8 18"></polyline>
-              </svg>
-              生成履歴を表示
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="alert('セッション設定機能（未実装）')">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M12 1v6m0 6v6m5.657-13.657l-4.243 4.243m0 5.657l4.243 4.243M23 12h-6m-6 0H1m18.364-5.657l-4.243 4.243m0 5.657l4.243 4.243"></path>
-              </svg>
-              設定
-            </button>
+        <div style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+          <div style="display: flex; gap: 8px;" id="scopeTabs">
+            ${scopes.map((scope, index) => {
+              const scopeDisplay = MockDataHelpers.getScopeDisplayName(scope);
+              const sessions = project.cursorSessions[scope];
+              const activeCount = sessions.filter(s => s.status === 'active').length;
+              return `
+                <button class="scope-tab ${index === 0 ? 'active' : ''}" data-scope="${scope}" onclick="switchScopeTab('${scope}')">
+                  ${scopeDisplay}
+                  ${activeCount > 0 ? `<span class="badge" style="margin-left: 4px; background: var(--success); color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px;">${activeCount}</span>` : ''}
+                </button>
+              `;
+            }).join('')}
           </div>
         </div>
+        <div id="scopeContent"></div>
+      `;
+      
+      // 初期スコープを表示
+      renderScopeContent(firstScope);
+    }
+    
+    // スコープタブを切り替え
+    window.switchScopeTab = function(scope) {
+      // タブのアクティブ状態を更新
+      document.querySelectorAll('.scope-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.scope === scope);
+      });
+      // コンテンツを更新
+      renderScopeContent(scope);
+    };
+    
+    // スコープのコンテンツを表示
+    function renderScopeContent(scope) {
+      const container = document.getElementById('scopeContent');
+      if (!container || !project.cursorSessions) return;
+      
+      const sessions = MockDataHelpers.getAllSessions(project, scope);
+      
+      if (sessions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding: 32px;">
+            <div class="empty-state-description">このスコープのセッションは開始されていません</div>
+            <button class="btn btn-primary btn-sm mt-16" onclick="alert('セッション開始機能（未実装）')">
+              新規セッションを開始
+            </button>
+          </div>
+        `;
+        return;
+      }
+      
+      const activeSession = sessions.find(s => s.status === 'active');
+      const closedSessions = sessions.filter(s => s.status === 'closed');
+      
+      container.innerHTML = `
+        ${activeSession ? `
+          <div style="margin-bottom: 24px;">
+            <div class="text-tertiary" style="font-size: 12px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">▼ アクティブセッション</div>
+            <div style="padding: 16px; background: var(--bg-darker); border-radius: 8px; border: 2px solid var(--success);">
+              <div class="flex items-center justify-between mb-16">
+                <div>
+                  <div class="text-tertiary" style="font-size: 12px;">セッションID</div>
+                  <div class="text-primary" style="font-size: 14px; font-weight: 600; margin-top: 4px; font-family: monospace;">${activeSession.sessionId}</div>
+                </div>
+                <span class="status-badge status-badge-active">
+                  <span class="status-dot status-dot-active"></span>
+                  アクティブ
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+                <div>
+                  <div class="text-tertiary" style="font-size: 12px;">作成日時</div>
+                  <div class="text-secondary" style="font-size: 13px; margin-top: 4px;">${MockDataHelpers.formatDateTime(activeSession.createdAt)}</div>
+                </div>
+                <div>
+                  <div class="text-tertiary" style="font-size: 12px;">最終使用</div>
+                  <div class="text-secondary" style="font-size: 13px; margin-top: 4px;">${MockDataHelpers.formatRelativeTime(activeSession.lastUsed)}</div>
+                </div>
+                <div>
+                  <div class="text-tertiary" style="font-size: 12px;">処理済み</div>
+                  <div class="text-secondary" style="font-size: 13px; margin-top: 4px;">${activeSession.documentsProcessed} 件</div>
+                </div>
+              </div>
+              <div class="flex gap-8">
+                <button class="btn btn-primary btn-sm" onclick="window.location.href='code-generation.html?project=${project.id}&scope=${scope}&session=${activeSession.sessionId}'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                  </svg>
+                  コード生成履歴
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="alert('セッション終了機能（未実装）')">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                  </svg>
+                  セッション終了
+                </button>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+        
+        ${closedSessions.length > 0 ? `
+          <div>
+            <div class="text-tertiary" style="font-size: 12px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">▼ 過去のセッション (${closedSessions.length}件)</div>
+            ${closedSessions.map(session => `
+              <div style="padding: 12px; background: var(--bg-darker); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px;">
+                <div class="flex items-center justify-between">
+                  <div style="flex: 1;">
+                    <div class="text-secondary" style="font-size: 13px; font-family: monospace;">${session.sessionId}</div>
+                    <div class="text-tertiary" style="font-size: 11px; margin-top: 4px;">
+                      処理: ${session.documentsProcessed}件 | 
+                      終了: ${MockDataHelpers.formatDateTime(session.closedAt)}
+                      ${session.closedReason ? ` | ${session.closedReason}` : ''}
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost btn-sm" onclick="window.location.href='code-generation.html?project=${project.id}&scope=${scope}&session=${session.sessionId}'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="16 18 22 12 16 6"></polyline>
+                      <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                    履歴
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       `;
     }
     
