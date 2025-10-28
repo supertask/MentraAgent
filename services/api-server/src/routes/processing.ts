@@ -148,7 +148,7 @@ export const processingRouter: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // ドキュメント生成（仕様書・議事録・メモ）
+  // ミーティング生成（仕様書・議事録・メモ）
   fastify.post('/generate-document', async (request, reply) => {
     try {
       const body = request.body as any;
@@ -262,7 +262,7 @@ export const processingRouter: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // ドキュメント一覧取得
+  // ミーティング一覧取得
   fastify.get('/documents', async (request, reply) => {
     try {
       const { projectId } = request.query as { projectId?: string };
@@ -661,13 +661,13 @@ _このPRは Realworld Agent によって自動生成されました_
     }
   });
 
-  // ドキュメント更新
+  // ミーティング更新
   fastify.patch('/documents/:documentId', async (request, reply) => {
     try {
       const { documentId } = request.params as { documentId: string };
       const body = request.body as any;
 
-      // ドキュメント情報を取得
+      // ミーティング情報を取得
       const document = await documentRepo.findById(documentId);
       if (!document) {
         return reply.status(404).send({
@@ -675,7 +675,7 @@ _このPRは Realworld Agent によって自動生成されました_
         });
       }
 
-      // ドキュメントを更新
+      // ミーティングを更新
       const updatedDocument = await documentRepo.update(documentId, {
         title: body.title || document.title,
         summary: body.summary || document.summary,
@@ -699,12 +699,12 @@ _このPRは Realworld Agent によって自動生成されました_
     }
   });
 
-  // ドキュメント削除
+  // ミーティング削除
   fastify.delete('/documents/:documentId', async (request, reply) => {
     try {
       const { documentId } = request.params as { documentId: string };
 
-      // ドキュメント情報を取得
+      // ミーティング情報を取得
       const document = await documentRepo.findById(documentId);
       if (!document) {
         return reply.status(404).send({

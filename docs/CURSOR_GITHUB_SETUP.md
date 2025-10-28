@@ -178,9 +178,9 @@ Cursor Background Agent APIが使用するリポジトリには特別な要件�
 
 ## 📚 関連ドキュメント
 
-- [Cursor Background Agent API ドキュメント](https://cursor.com/ja/docs/background-agent/api/endpoints)
+- [Cursor Background Agent API ミーティング](https://cursor.com/ja/docs/background-agent/api/endpoints)
 - [Cursor API認証ガイド](https://cursor.com/docs/api/authentication)
-- [GitHub Apps ドキュメント](https://docs.github.com/en/apps)
+- [GitHub Apps ミーティング](https://docs.github.com/en/apps)
 
 ## 💡 よくある質問
 

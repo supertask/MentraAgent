@@ -1,6 +1,6 @@
 /**
  * Document Repository
- * ドキュメント（仕様書・議事録）のデータアクセス層
+ * ミーティング（仕様書・議事録）のデータアクセス層
  */
 
 import type { DatabaseService } from '../services/DatabaseService';
@@ -30,7 +30,7 @@ export class DocumentRepository {
   constructor(private db: DatabaseService) {}
 
   /**
-   * ドキュメントを作成
+   * ミーティングを作成
    */
   async create(input: DocumentCreateInput): Promise<Document> {
     const { projectIds, ...documentData } = input;
@@ -121,7 +121,7 @@ export class DocumentRepository {
   }
 
   /**
-   * ドキュメントを更新
+   * ミーティングを更新
    */
   async update(
     id: string,
@@ -134,7 +134,7 @@ export class DocumentRepository {
   }
 
   /**
-   * ドキュメントを削除
+   * ミーティングを削除
    */
   async delete(id: string): Promise<void> {
     await this.db.prisma!.document.delete({
@@ -143,7 +143,7 @@ export class DocumentRepository {
   }
 
   /**
-   * ドキュメントの関連プロジェクトIDを取得
+   * ミーティングの関連プロジェクトIDを取得
    */
   async getProjectIds(documentId: string): Promise<string[]> {
     const projectDocuments = await this.db.prisma!.projectDocument.findMany({
@@ -155,7 +155,7 @@ export class DocumentRepository {
   }
 
   /**
-   * ドキュメントにプロジェクトを追加
+   * ミーティングにプロジェクトを追加
    */
   async addToProject(documentId: string, projectId: string): Promise<void> {
     await this.db.prisma!.projectDocument.create({
@@ -167,7 +167,7 @@ export class DocumentRepository {
   }
 
   /**
-   * ドキュメントからプロジェクトを削除
+   * ミーティングからプロジェクトを削除
    */
   async removeFromProject(documentId: string, projectId: string): Promise<void> {
     await this.db.prisma!.projectDocument.deleteMany({

@@ -223,9 +223,9 @@ sequenceDiagram
     
     User->>Frontend: 仕様書を作成
     Frontend->>API Server: POST /api/processing/generate-document
-    API Server->>Modal GPU: ドキュメント生成
+    API Server->>Modal GPU: ミーティング生成
     Modal GPU-->>API Server: マークダウン
-    API Server->>Database: ドキュメントを保存
+    API Server->>Database: ミーティングを保存
     
     User->>Frontend: Cursor Agentでプラン作成
     Frontend->>API Server: POST /api/cursor-agent/sessions/:id/plan
@@ -459,7 +459,7 @@ curl http://localhost:3000/api/projects
 
 ## 📚 参考資料
 
-- [Cursor Background Agent API ドキュメント](https://cursor.com/ja/docs/background-agent/api/endpoints)
+- [Cursor Background Agent API ミーティング](https://cursor.com/ja/docs/background-agent/api/endpoints)
 - [Cursor GitHubセットアップガイド](./CURSOR_GITHUB_SETUP.md)
 - [RealworldAgent 使い方ガイド](./realworld_agent.md)
 - [サンプルプログラム](../etc/tmp/cursor_agent_example.py)

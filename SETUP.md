@@ -295,7 +295,7 @@ modal deploy modal_app.py --stream-logs
    - Modalを本番環境にデプロイ
    - APIサーバーをクラウドにデプロイ
 
-## 📖 ドキュメント
+## 📖 ミーティング
 
 - [LLMプロバイダー設定ガイド](./docs/LLM_PROVIDER_CONFIGURATION.md)
 - [MentraOS開発ガイド](./docs/mentra_developer_tips.md)

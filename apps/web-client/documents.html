@@ -421,7 +421,7 @@
     <nav class="page-header-nav">
       <div class="nav-left">
         <a href="/" class="nav-link home">🏠 ホーム</a>
-        <h2 style="margin: 0; color: var(--text-primary);">📂 ドキュメント履歴</h2>
+        <h2 style="margin: 0; color: var(--text-primary);">📂 ミーティング履歴</h2>
       </div>
       <button class="hamburger-menu" id="hamburger-menu" aria-label="メニュー">
         <span></span>
@@ -429,9 +429,9 @@
         <span></span>
       </button>
       <div class="nav-links" id="nav-links">
-        <a href="/webcam.html" class="nav-link">🎥 ドキュメント作成</a>
+        <a href="/webcam.html" class="nav-link">🎥 ミーティング作成</a>
         <a href="/cursor-agent.html" class="nav-link">🤖 コード生成</a>
-        <a href="/documents.html" class="nav-link">📂 ドキュメント履歴</a>
+        <a href="/documents.html" class="nav-link">📂 ミーティング履歴</a>
         <a href="/cursor-builds.html" class="nav-link">📜 コード生成履歴</a>
         <a href="/projects.html" class="nav-link">📁 プロジェクト管理</a>
       </div>
@@ -456,7 +456,7 @@
     </script>
 
     <header>
-      <h1>📂 プロジェクト & ドキュメント履歴</h1>
+      <h1>📂 ミーティング履歴</h1>
       <p class="subtitle">プロジェクトごとに整理されたドキュメント</p>
     </header>
 
@@ -599,7 +599,7 @@
       // 各プロジェクトタブ
       projects.forEach(project => {
         const count = documents.filter(d => d.projectId === project.id).length;
-        if (count === 0) return; // ドキュメントがないプロジェクトは表示しない
+        if (count === 0) return; // ミーティングがないプロジェクトは表示しない
         
         const tab = document.createElement('div');
         tab.className = `project-tab ${activeProjectId === project.id ? 'active' : ''}`;
@@ -884,7 +884,7 @@
         const markdownPreview = document.getElementById('markdown-preview');
         await renderMarkdownPreview(newMarkdown, markdownPreview);
         
-        // ドキュメントを更新
+        // ミーティングを更新
         currentDocument.content.markdown = newMarkdown;
         const index = documents.findIndex(d => d.id === currentDocument.id);
         if (index !== -1) {
@@ -920,7 +920,7 @@
       }
     });
     
-    // ドキュメント削除
+    // ミーティング削除
     window.deleteDocument = async function(documentId, event) {
       event.stopPropagation(); // カードのクリックイベントを防ぐ
       

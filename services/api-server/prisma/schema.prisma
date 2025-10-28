@@ -185,7 +185,7 @@ model ProjectDocument {
   @@index([documentId])
 }
 
-// ドキュメント（仕様書・議事録）
+// ミーティング（仕様書・議事録）
 model Document {
   id          String   @id @default(uuid())
   sessionId   String

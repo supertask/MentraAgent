@@ -220,7 +220,7 @@ export const projectsRouter: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // ドキュメントをプロジェクトに追加
+  // ミーティングをプロジェクトに追加
   fastify.post('/:id/documents/:documentId', async (request, reply) => {
     try {
       const { id, documentId } = request.params as {
@@ -261,7 +261,7 @@ export const projectsRouter: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // ドキュメントをプロジェクトから削除
+  // ミーティングをプロジェクトから削除
   fastify.delete('/:id/documents/:documentId', async (request, reply) => {
     try {
       const { id, documentId } = request.params as {

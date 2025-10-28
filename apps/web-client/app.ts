@@ -28,7 +28,7 @@ const transcriptionOutput = document.getElementById('transcription-output') as H
 const importantMoments = document.getElementById('important-moments') as HTMLDivElement;
 const systemLog = document.getElementById('system-log') as HTMLDivElement;
 
-// ドキュメント生成モーダル要素
+// ミーティング生成モーダル要素
 const documentModal = document.getElementById('document-modal') as HTMLDivElement;
 const closeDocumentModal = document.getElementById('close-document-modal') as HTMLButtonElement;
 const selectedProjectsDisplay = document.getElementById('selected-projects-display') as HTMLDivElement;
@@ -139,7 +139,7 @@ function setupEventListeners() {
   captureButton.addEventListener('click', capturePhoto);
   generateDocumentButton.addEventListener('click', openDocumentModal);
   
-  // ドキュメント生成モーダル
+  // ミーティング生成モーダル
   closeDocumentModal.addEventListener('click', closeDocumentModalFn);
   cancelDocument.addEventListener('click', closeDocumentModalFn);
   generateDocumentSubmit.addEventListener('click', generateDocument);
@@ -464,7 +464,7 @@ async function capturePhoto() {
   }
 }
 
-// ドキュメント生成モーダルを開く
+// ミーティング生成モーダルを開く
 function openDocumentModal() {
   // 選択されたプロジェクトを確認
   const selectedOptions = Array.from(projectSelect.selectedOptions);
@@ -482,12 +482,12 @@ function openDocumentModal() {
   documentPrompt.focus();
 }
 
-// ドキュメント生成モーダルを閉じる
+// ミーティング生成モーダルを閉じる
 function closeDocumentModalFn() {
   documentModal.classList.add('hidden');
 }
 
-// ドキュメント生成
+// ミーティング生成
 async function generateDocument() {
   if (!sessionId) {
     alert('セッションが開始されていません');
@@ -502,7 +502,7 @@ async function generateDocument() {
     return;
   }
   
-  // ドキュメントタイプを取得
+  // ミーティングタイプを取得
   const documentTypeInput = document.querySelector('input[name="document-type"]:checked') as HTMLInputElement;
   const documentType = documentTypeInput?.value || 'auto';
   
@@ -527,7 +527,7 @@ async function generateDocument() {
     
     if (response.ok) {
       const data = await response.json();
-      addLog(`✅ ドキュメントを生成しました: ${data.title}`, 'success');
+      addLog(`✅ ミーティングを生成しました: ${data.title}`, 'success');
       addLog(`📄 タイプ: ${data.type}`, 'info');
       
       // モーダルを閉じる
@@ -541,10 +541,10 @@ async function generateDocument() {
       }, 500);
     } else {
       const errorData = await response.json();
-      alert(`❌ ドキュメント生成に失敗しました: ${errorData.message || errorData.error}`);
+      alert(`❌ ミーティング生成に失敗しました: ${errorData.message || errorData.error}`);
     }
   } catch (error) {
-    alert(`❌ ドキュメント生成エラー: ${error}`);
+    alert(`❌ ミーティング生成エラー: ${error}`);
     console.error(error);
   } finally {
     generateDocumentSubmit.disabled = false;

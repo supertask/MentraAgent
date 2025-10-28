@@ -382,17 +382,17 @@ JSON形式で回答してください：
         additional_prompt: str = "",
     ) -> Dict[str, Any]:
         """
-        ドキュメント生成（仕様書・議事録・メモ）
+        ミーティング生成（仕様書・議事録・メモ）
 
         Args:
             context: コンテキスト情報（文字起こし、画像など）
-            document_type: ドキュメントタイプ（'specification', 'minutes', 'memo', 'auto'）
+            document_type: ミーティングタイプ（'specification', 'minutes', 'memo', 'auto'）
             additional_prompt: 追加のプロンプト（任意）
 
         Returns:
             生成されたドキュメント
         """
-        print(f"📄 ドキュメント生成開始（タイプ: {document_type}、プライマリ: {self.primary_llm_provider}）")
+        print(f"📄 ミーティング生成開始（タイプ: {document_type}、プライマリ: {self.primary_llm_provider}）")
 
         # プロンプトの構築
         prompt = self._build_document_prompt(context, document_type, additional_prompt)
@@ -407,7 +407,7 @@ JSON形式で回答してください：
             
             document_text = result["content"]
             
-            # ドキュメントタイプを判定（autoの場合）
+            # ミーティングタイプを判定（autoの場合）
             final_type = document_type
             if document_type == "auto":
                 final_type = self._detect_document_type(document_text)
@@ -420,7 +420,7 @@ JSON形式で回答してください：
                 "timestamp": datetime.now().isoformat(),
             }
 
-            print(f"✅ ドキュメント生成完了（タイプ: {final_type}）")
+            print(f"✅ ミーティング生成完了（タイプ: {final_type}）")
             return output
 
         except Exception as e:
@@ -440,7 +440,7 @@ JSON形式で回答してください：
                     
                     document_text = result["content"]
                     
-                    # ドキュメントタイプを判定（autoの場合）
+                    # ミーティングタイプを判定（autoの場合）
                     final_type = document_type
                     if document_type == "auto":
                         final_type = self._detect_document_type(document_text)
@@ -453,7 +453,7 @@ JSON形式で回答してください：
                         "timestamp": datetime.now().isoformat(),
                     }
 
-                    print(f"✅ ドキュメント生成完了（フォールバック、タイプ: {final_type}）")
+                    print(f"✅ ミーティング生成完了（フォールバック、タイプ: {final_type}）")
                     return output
                     
                 except Exception as fallback_error:
@@ -606,7 +606,7 @@ JSON形式で回答してください：
         transcriptions = context.get("transcriptions", [])
         photos = context.get("photos", [])
 
-        # ドキュメントタイプに応じたプロンプト
+        # ミーティングタイプに応じたプロンプト
         if document_type == "specification":
             type_instruction = """技術仕様書を作成してください。
 要件、技術詳細、実装手順を含めてください。

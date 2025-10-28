@@ -141,7 +141,7 @@ realworld-agent/
 │   └── gpu-server/          # Modal GPUサーバー
 ├── packages/
 │   └── shared/              # 共通型定義
-├── docs/                    # ドキュメント
+├── docs/                    # ミーティング
 ├── docker-compose.yml       # Docker設定
 ├── .env.example             # 環境変数テンプレート
 └── package.json             # Monorepo設定
@@ -269,7 +269,7 @@ ENABLE_LLM_FALLBACK=true
 
 詳細は [コード生成ガイド](./docs/CODE_GENERATION_GUIDE.md) を参照
 
-## 📚 ドキュメント
+## 📚 ミーティング
 
 - [**コード生成ガイド**](./docs/CODE_GENERATION_GUIDE.md) - 音声からのコード自動生成 🆕
 - [LLMプロバイダー設定](./docs/LLM_PROVIDER_CONFIGURATION.md) - OpenAI/Anthropic切り替え

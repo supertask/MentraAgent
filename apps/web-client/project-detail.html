@@ -437,9 +437,9 @@
         <span></span>
       </button>
       <div class="nav-links" id="nav-links">
-        <a href="/webcam.html" class="nav-link">🎥 ドキュメント作成</a>
+        <a href="/webcam.html" class="nav-link">🎥 ミーティング作成</a>
         <a href="/cursor-agent.html" class="nav-link">🤖 コード生成</a>
-        <a href="/documents.html" class="nav-link">📂 ドキュメント履歴</a>
+        <a href="/documents.html" class="nav-link">📂 ミーティング履歴</a>
         <a href="/cursor-builds.html" class="nav-link">📜 コード生成履歴</a>
         <a href="/projects.html" class="nav-link">📁 プロジェクト管理</a>
       </div>
@@ -479,15 +479,15 @@
       <!-- プロジェクト情報 -->
       <div id="project-header"></div>
 
-      <!-- ドキュメント一覧 -->
-      <h2 class="section-title">📄 ドキュメント・仕様書</h2>
+      <!-- ミーティング一覧 -->
+      <h2 class="section-title">📄 ミーティング・仕様書</h2>
       <div id="documents-container">
         <div id="documents-list" class="documents-grid"></div>
         <div id="documents-empty" class="empty-state hidden">
           <div class="empty-icon">📭</div>
           <h3>まだドキュメントがありません</h3>
           <p>このプロジェクトのドキュメントを作成してみましょう</p>
-          <a href="/webcam.html" class="action-btn" style="display: inline-block; margin-top: 20px;">🎥 ドキュメント作成を開始</a>
+          <a href="/webcam.html" class="action-btn" style="display: inline-block; margin-top: 20px;">🎥 ミーティング作成を開始</a>
         </div>
       </div>
 
@@ -504,7 +504,7 @@
       </div>
     </div>
 
-    <!-- ドキュメント詳細モーダル -->
+    <!-- ミーティング詳細モーダル -->
     <div id="document-modal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
@@ -543,7 +543,7 @@
         const projectData = await projectResponse.json();
         const project = projectData.project;
 
-        // ドキュメント一覧を取得
+        // ミーティング一覧を取得
         const documentsResponse = await fetch(`${API_BASE_URL}/api/projects/${projectId}/documents`);
         if (!documentsResponse.ok) throw new Error('Failed to load documents');
         const documentsData = await documentsResponse.json();

@@ -81,7 +81,7 @@ export class ModalGPUService {
   }
 
   /**
-   * ドキュメント生成（仕様書・議事録・メモ）
+   * ミーティング生成（仕様書・議事録・メモ）
    */
   async generateDocument(
     context: {

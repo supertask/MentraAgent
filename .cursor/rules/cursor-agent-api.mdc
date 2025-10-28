@@ -1,0 +1,472 @@
+---
+description: Cursor Background APIを使用する際に必ず読む
+alwaysApply: false
+---
+# Cursor Background Agent API 使用ガイド
+
+## 重要な前提条件
+
+### 1. ストレージモードの有効化が必須
+⚠️ **最重要**: Background Agent API を使用するには、Cursorの設定でストレージモードを有効にする必要があります。
+
+- ストレージモードが無効の場合、APIは `403 Forbidden` エラーを返します
+- Cursor設定 → Storage（ストレージ）セクション → ストレージモードを有効化
+
+### 2. API認証
+- API Key: Cursor Dashboard（https://cursor.com/settings）の「Integrations」から作成
+- 認証方法: `Authorization: Bearer {API_KEY}` ヘッダー
+
+## API エンドポイント
+
+### ベースURL
+```
+https://api.cursor.com/v0
+```
+
+### 1. エージェント作成
+**エンドポイント**: `POST /agents`
+
+```python
+payload = {
+    "prompt": {
+        "text": "エージェントへの指示"
+    },
+    "source": {  # オプション
+        "repository": "https://github.com/username/repo",
+        "ref": "main"  # ブランチ名（オプション）
+    }
+}
+```
+
+**レスポンス例**:
+```json
+{
+    "id": "agent_123456",
+    "status": "pending",
+    "created_at": "2025-10-26T12:00:00Z"
+}
+```
+
+### 2. エージェントの状態確認
+**エンドポイント**: `GET /agents/{agent_id}`
+
+**ステータス**:
+- `pending`: 処理待ち
+- `running`: 実行中
+- `completed`: 完了
+- `failed`: 失敗
+- `cancelled`: キャンセル済み
+
+**レスポンス例**:
+```json
+{
+    "id": "agent_123456",
+    "status": "running",
+    "progress": 50,
+    "current_task": "コードベースを解析中...",
+    "updated_at": "2025-10-26T12:01:30Z"
+}
+```
+
+### 3. フォローアップメッセージ送信
+**エンドポイント**: `POST /agents/{agent_id}/followup`
+
+```python
+payload = {
+    "prompt": {
+        "text": "追加の指示やフィードバック"
+    }
+}
+```
+
+## 実装ベストプラクティス
+
+### 1. エージェント作成時
+```python
+import requests
+
+class CursorAgentClient:
+    BASE_URL = "https://api.cursor.com/v0"
+    
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+    
+    def create_agent(self, repo_url: str, instructions: str, branch: str = None):
+        url = f"{self.BASE_URL}/agents"
+        payload = {
+            "prompt": {"text": instructions}
+        }
+        
+        if repo_url:
+            payload["source"] = {"repository": repo_url}
+            if branch:
+                payload["source"]["ref"] = branch
+        
+        response = requests.post(url, headers=self.headers, json=payload)
+        response.raise_for_status()
+        return response.json()
+```
+
+### 2. ポーリングによる完了待機
+```python
+import time
+
+def wait_for_completion(self, agent_id: str, max_wait_time: int = 300, poll_interval: int = 5):
+    """
+    エージェントの完了を待機
+    
+    Args:
+        agent_id: エージェントID
+        max_wait_time: 最大待機時間（秒）
+        poll_interval: ポーリング間隔（秒）
+    """
+    start_time = time.time()
+    while time.time() - start_time < max_wait_time:
+        status_data = self.get_agent_status(agent_id)
+        status = status_data.get('status', 'unknown')
+        
+        # 終了状態をチェック
+        if status in ['completed', 'failed', 'cancelled']:
+            return status_data
+        
+        time.sleep(poll_interval)
+    
+    # タイムアウト
+    return self.get_agent_status(agent_id)
+```
+
+### 3. エラーハンドリング
+```python
+try:
+    agent_data = client.create_agent(
+        repo_url=repo_url,
+        instructions=instructions
+    )
+    agent_id = agent_data.get('id')
+    
+    # 完了を待機
+    final_status = client.wait_for_completion(agent_id)
+    
+    if final_status.get('status') == 'completed':
+        # 成功処理
+        pass
+    else:
+        # エラー処理
+        print(f"エージェント失敗: {final_status.get('status')}")
+        
+except requests.exceptions.HTTPError as e:
+    if e.response.status_code == 403:
+        print("エラー: ストレージモードが無効です")
+    elif e.response.status_code == 401:
+        print("エラー: API認証に失敗しました")
+    else:
+        print(f"APIエラー: {e}")
+```
+
+## よくあるエラーと対処法
+
+### 403 Forbidden
+```json
+{"error": "Storage mode is disabled..."}
+```
+**原因**: ストレージモードが無効  
+**対処**: Cursorの設定でストレージモードを有効にする
+
+### 401 Unauthorized
+**原因**: API Keyが無効または期限切れ  
+**対処**: 新しいAPI Keyを作成して使用
+
+### 429 Too Many Requests
+**原因**: レート制限に達した  
+**対処**: リクエスト頻度を下げる、またはバックオフ戦略を実装
+
+### タイムアウト
+**原因**: エージェント処理に時間がかかっている  
+**対処**: `max_wait_time`を増やす、または非同期処理に変更
+
+## RealworldAgentでの使用方法
+
+### Doc差分からコード生成までの流れ
+```python
+# 1. Doc差分を検出
+diff_content = detect_doc_diff(current_doc, previous_doc)
+
+# 2. プロジェクトコンテキストを取得
+project_context = get_project_context(repo_url)
+
+# 3. Cursor Agentでコード生成
+instructions = f"""
+以下のドキュメント差分に基づいて、コードを生成/更新してください。
+
+## ドキュメント差分
+{diff_content}
+
+## プロジェクトコンテキスト
+{project_context}
+
+## 指示
+- 既存コードがある場合は適切に更新してください
+- 新規機能の場合は適切な場所に実装してください
+- テストコードも生成してください
+"""
+
+agent_data = cursor_client.create_agent(
+    repo_url=repo_url,
+    instructions=instructions,
+    branch="main"
+)
+
+# 4. 完了を待機
+final_status = cursor_client.wait_for_completion(
+    agent_data['id'],
+    max_wait_time=600  # 10分
+)
+
+# 5. 結果をGitHub PRとして作成
+if final_status['status'] == 'completed':
+    create_github_pr(agent_data['id'], project_name)
+```
+
+## 参考リンク
+- [Cursor Background Agent API ドキュメント](https://cursor.com/ja/docs/background-agent/api/endpoints)
+- [サンプルコード](../../etc/tmp/cursor_agent_example.py)
+- [詳細README](../../etc/tmp/CURSOR_AGENT_README.md)
+
+
+# Cursor Background Agent API 使用ガイド
+
+## 重要な前提条件
+
+### 1. ストレージモードの有効化が必須
+⚠️ **最重要**: Background Agent API を使用するには、Cursorの設定でストレージモードを有効にする必要があります。
+
+- ストレージモードが無効の場合、APIは `403 Forbidden` エラーを返します
+- Cursor設定 → Storage（ストレージ）セクション → ストレージモードを有効化
+
+### 2. API認証
+- API Key: Cursor Dashboard（https://cursor.com/settings）の「Integrations」から作成
+- 認証方法: `Authorization: Bearer {API_KEY}` ヘッダー
+
+## API エンドポイント
+
+### ベースURL
+```
+https://api.cursor.com/v0
+```
+
+### 1. エージェント作成
+**エンドポイント**: `POST /agents`
+
+```python
+payload = {
+    "prompt": {
+        "text": "エージェントへの指示"
+    },
+    "source": {  # オプション
+        "repository": "https://github.com/username/repo",
+        "ref": "main"  # ブランチ名（オプション）
+    }
+}
+```
+
+**レスポンス例**:
+```json
+{
+    "id": "agent_123456",
+    "status": "pending",
+    "created_at": "2025-10-26T12:00:00Z"
+}
+```
+
+### 2. エージェントの状態確認
+**エンドポイント**: `GET /agents/{agent_id}`
+
+**ステータス**:
+- `pending`: 処理待ち
+- `running`: 実行中
+- `completed`: 完了
+- `failed`: 失敗
+- `cancelled`: キャンセル済み
+
+**レスポンス例**:
+```json
+{
+    "id": "agent_123456",
+    "status": "running",
+    "progress": 50,
+    "current_task": "コードベースを解析中...",
+    "updated_at": "2025-10-26T12:01:30Z"
+}
+```
+
+### 3. フォローアップメッセージ送信
+**エンドポイント**: `POST /agents/{agent_id}/followup`
+
+```python
+payload = {
+    "prompt": {
+        "text": "追加の指示やフィードバック"
+    }
+}
+```
+
+## 実装ベストプラクティス
+
+### 1. エージェント作成時
+```python
+import requests
+
+class CursorAgentClient:
+    BASE_URL = "https://api.cursor.com/v0"
+    
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+    
+    def create_agent(self, repo_url: str, instructions: str, branch: str = None):
+        url = f"{self.BASE_URL}/agents"
+        payload = {
+            "prompt": {"text": instructions}
+        }
+        
+        if repo_url:
+            payload["source"] = {"repository": repo_url}
+            if branch:
+                payload["source"]["ref"] = branch
+        
+        response = requests.post(url, headers=self.headers, json=payload)
+        response.raise_for_status()
+        return response.json()
+```
+
+### 2. ポーリングによる完了待機
+```python
+import time
+
+def wait_for_completion(self, agent_id: str, max_wait_time: int = 300, poll_interval: int = 5):
+    """
+    エージェントの完了を待機
+    
+    Args:
+        agent_id: エージェントID
+        max_wait_time: 最大待機時間（秒）
+        poll_interval: ポーリング間隔（秒）
+    """
+    start_time = time.time()
+    while time.time() - start_time < max_wait_time:
+        status_data = self.get_agent_status(agent_id)
+        status = status_data.get('status', 'unknown')
+        
+        # 終了状態をチェック
+        if status in ['completed', 'failed', 'cancelled']:
+            return status_data
+        
+        time.sleep(poll_interval)
+    
+    # タイムアウト
+    return self.get_agent_status(agent_id)
+```
+
+### 3. エラーハンドリング
+```python
+try:
+    agent_data = client.create_agent(
+        repo_url=repo_url,
+        instructions=instructions
+    )
+    agent_id = agent_data.get('id')
+    
+    # 完了を待機
+    final_status = client.wait_for_completion(agent_id)
+    
+    if final_status.get('status') == 'completed':
+        # 成功処理
+        pass
+    else:
+        # エラー処理
+        print(f"エージェント失敗: {final_status.get('status')}")
+        
+except requests.exceptions.HTTPError as e:
+    if e.response.status_code == 403:
+        print("エラー: ストレージモードが無効です")
+    elif e.response.status_code == 401:
+        print("エラー: API認証に失敗しました")
+    else:
+        print(f"APIエラー: {e}")
+```
+
+## よくあるエラーと対処法
+
+### 403 Forbidden
+```json
+{"error": "Storage mode is disabled..."}
+```
+**原因**: ストレージモードが無効  
+**対処**: Cursorの設定でストレージモードを有効にする
+
+### 401 Unauthorized
+**原因**: API Keyが無効または期限切れ  
+**対処**: 新しいAPI Keyを作成して使用
+
+### 429 Too Many Requests
+**原因**: レート制限に達した  
+**対処**: リクエスト頻度を下げる、またはバックオフ戦略を実装
+
+### タイムアウト
+**原因**: エージェント処理に時間がかかっている  
+**対処**: `max_wait_time`を増やす、または非同期処理に変更
+
+## RealworldAgentでの使用方法
+
+### Doc差分からコード生成までの流れ
+```python
+# 1. Doc差分を検出
+diff_content = detect_doc_diff(current_doc, previous_doc)
+
+# 2. プロジェクトコンテキストを取得
+project_context = get_project_context(repo_url)
+
+# 3. Cursor Agentでコード生成
+instructions = f"""
+以下のドキュメント差分に基づいて、コードを生成/更新してください。
+
+## ドキュメント差分
+{diff_content}
+
+## プロジェクトコンテキスト
+{project_context}
+
+## 指示
+- 既存コードがある場合は適切に更新してください
+- 新規機能の場合は適切な場所に実装してください
+- テストコードも生成してください
+"""
+
+agent_data = cursor_client.create_agent(
+    repo_url=repo_url,
+    instructions=instructions,
+    branch="main"
+)
+
+# 4. 完了を待機
+final_status = cursor_client.wait_for_completion(
+    agent_data['id'],
+    max_wait_time=600  # 10分
+)
+
+# 5. 結果をGitHub PRとして作成
+if final_status['status'] == 'completed':
+    create_github_pr(agent_data['id'], project_name)
+```
+
+## 参考リンク
+- [Cursor Background Agent API ドキュメント](https://cursor.com/ja/docs/background-agent/api/endpoints)
+- [サンプルコード](../../etc/tmp/cursor_agent_example.py)
+- [詳細README](../../etc/tmp/CURSOR_AGENT_README.md)

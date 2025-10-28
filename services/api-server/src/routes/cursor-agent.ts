@@ -457,7 +457,7 @@ export const cursorAgentRouter: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      // ドキュメントを取得（コンテキスト用）
+      // ミーティングを取得（コンテキスト用）
       const documents = await Promise.all(
         session.documentIds.map((id) => documentRepo.findById(id))
       );
