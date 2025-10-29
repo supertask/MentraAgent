@@ -1,19 +1,17 @@
 ```mermaid
 flowchart LR
     subgraph Input["入力"]
-        G[📸 画像つき議事録]
+        SG[Smart Glass]
+        GM[Google Meet]
     end
 
-        MA[🤖 議事録エージェント]
+    API[議事録エージェント]
 
     subgraph Output["出力"]
-        TODO[📝 ToDo作成]
-        SPEC[📄 仕様書作成<br/>（Notion / Google Drive / GitHub）]
-        MAIL[✉️ メール作成]
+        Storage[ストレージ<br/>（Drive / GitHub / Notion）]
     end
 
-    G --> MA
-    MA --> TODO
-    MA --> SPEC
-    MA --> MAIL
+    SG -->|"映像・音声送信<br/>（リアルタイム）"| API
+    GM -->|"映像・音声送信<br/>（録画）"| API
+    API -->|"画像つき議事録を保存"| Storage
 ```
