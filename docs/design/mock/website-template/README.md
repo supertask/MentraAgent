@@ -70,7 +70,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-ブラウザで `http://localhost:5000` にアクセス
+ブラウザで `http://localhost:5001` にアクセス
 
 ## 使い方
 
@@ -200,7 +200,7 @@ mock_projects.append({
 
 ## トラブルシューティング
 
-### ポート5000が使用中
+### ポート5001が使用中
 
 別のポートで起動する場合：
 
