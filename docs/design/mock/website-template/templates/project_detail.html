@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - RealworldAgent{% endblock %}
+
+{% block content %}
+<main class="main-content">
+  <!-- ページヘッダー -->
+  <div class="page-header">
+    <div>
+      <div class="breadcrumb mb-8">
+        <a href="{{ url_for('projects') }}" class="breadcrumb-item">プロジェクト一覧</a>
+        <span class="breadcrumb-separator">›</span>
+        <span class="breadcrumb-item active">{{ project.name }}</span>
+      </div>
+      <h1 class="page-title">{{ project.name }}</h1>
+      <p class="page-subtitle">{{ project.description }}</p>
+    </div>
+  </div>
+
+  <!-- 統計カード -->
+  <div class="grid grid-3 mb-32">
+    <div class="stats-card">
+      <div class="stats-card-label">ミーティング</div>
+      <div class="stats-card-value">{{ project.meeting_count }}</div>
+    </div>
+    <div class="stats-card">
+      <div class="stats-card-label">議事録</div>
+      <div class="stats-card-value">{{ project.document_count }}</div>
+    </div>
+    <div class="stats-card">
+      <div class="stats-card-label">Pull Requests</div>
+      <div class="stats-card-value">{{ project.pr_count }}</div>
+    </div>
+  </div>
+
+  <!-- プロジェクト基本情報 -->
+  <div class="card mb-24">
+    <div class="card-header">
+      <h2 class="card-title">プロジェクト情報</h2>
+    </div>
+    <div class="card-body">
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;">
+        <div>
+          <div class="text-tertiary" style="font-size: 12px; margin-bottom: 8px;">プロジェクトID</div>
+          <div class="text-secondary">{{ project.id }}</div>
+        </div>
+        <div>
+          <div class="text-tertiary" style="font-size: 12px; margin-bottom: 8px;">ステータス</div>
+          <div>
+            <span class="status-badge status-badge-{{ project.status }}">
+              <span class="status-dot status-dot-{{ project.status }}"></span>
+              {% if project.status == 'active' %}アクティブ{% else %}アーカイブ{% endif %}
+            </span>
+          </div>
+        </div>
+        <div>
+          <div class="text-tertiary" style="font-size: 12px; margin-bottom: 8px;">作成日</div>
+          <div class="text-secondary">{{ project.created_at|format_datetime }}</div>
+        </div>
+        <div>
+          <div class="text-tertiary" style="font-size: 12px; margin-bottom: 8px;">最終更新</div>
+          <div class="text-secondary">{{ project.last_updated|format_datetime }}</div>
+        </div>
+        <div style="grid-column: 1 / -1;">
+          <div class="text-tertiary" style="font-size: 12px; margin-bottom: 8px;">リポジトリ</div>
+          <a href="{{ project.repository_url }}" class="text-primary" target="_blank">{{ project.repository_url }}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ミーティング一覧 -->
+  <div class="card mb-24">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">ミーティング一覧</h2>
+        <p class="card-subtitle">このプロジェクトのミーティング</p>
+      </div>
+      <a href="{{ url_for('meetings') }}" class="btn btn-ghost btn-sm">すべて表示</a>
+    </div>
+    <div class="card-body">
+      {% if meetings %}
+        {% for meeting in meetings %}
+        <div class="list-item" style="margin-bottom: 12px;">
+          <div class="list-item-icon">🎥</div>
+          <div class="list-item-content">
+            <div class="list-item-title">{{ meeting.meeting_name }}</div>
+            <div class="list-item-description">{{ meeting.duration }} • {{ meeting.date|format_datetime }}</div>
+          </div>
+          <div class="list-item-meta">
+            <span class="status-badge status-badge-{{ meeting.status }}">
+              <span class="status-dot status-dot-{{ meeting.status }}"></span>
+              {% if meeting.status == 'completed' %}完了{% else %}処理中{% endif %}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding: 32px;">
+          <div class="empty-state-description">ミーティングはまだありません</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</main>
+{% endblock %}
+

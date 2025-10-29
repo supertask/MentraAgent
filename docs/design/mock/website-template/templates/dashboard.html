@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}ダッシュボード - RealworldAgent{% endblock %}
+
+{% block content %}
+<main class="main-content">
+  <!-- ページヘッダー -->
+  <div class="page-header">
+    <h1 class="page-title">ダッシュボード</h1>
+    <p class="page-subtitle">RealworldAgent システム概要</p>
+  </div>
+
+  <!-- 統計カード -->
+  <div class="grid grid-4 mb-32">
+    <div class="stats-card">
+      <div class="stats-card-label">アクティブプロジェクト</div>
+      <div class="stats-card-value">{{ projects|length }}</div>
+      <div class="stats-card-change positive">今週 +1</div>
+    </div>
+    <div class="stats-card">
+      <div class="stats-card-label">今週のミーティング</div>
+      <div class="stats-card-value">3</div>
+      <div class="stats-card-change">先週 2</div>
+    </div>
+    <div class="stats-card">
+      <div class="stats-card-label">オープンPR</div>
+      <div class="stats-card-value">2</div>
+      <div class="stats-card-change">レビュー待ち</div>
+    </div>
+    <div class="stats-card">
+      <div class="stats-card-label">処理中タスク</div>
+      <div class="stats-card-value">{{ processing_code_gens|length }}</div>
+      <div class="stats-card-change">動画解析中</div>
+    </div>
+  </div>
+
+  <!-- コンテンツグリッド -->
+  <div class="grid grid-2">
+    <!-- 最近のミーティング -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">最近のミーティング</h2>
+          <p class="card-subtitle">直近のGoogle Meetミーティング</p>
+        </div>
+        <a href="{{ url_for('meetings') }}" class="btn btn-ghost btn-sm">すべて表示</a>
+      </div>
+      <div class="card-body">
+        {% if recent_meetings %}
+          {% for meeting in recent_meetings %}
+          <div class="list-item" style="margin-bottom: 12px;">
+            <div class="list-item-icon">🎥</div>
+            <div class="list-item-content">
+              <div class="list-item-title">{{ meeting.title }}</div>
+              <div class="list-item-description">{{ meeting.duration }} • {{ meeting.date|format_datetime }}</div>
+            </div>
+            <div class="list-item-meta">
+              <span class="status-badge status-badge-{{ meeting.status }}">
+                <span class="status-dot status-dot-{{ meeting.status }}"></span>
+                {% if meeting.status == 'completed' %}完了{% else %}処理中{% endif %}
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding: 32px;">
+            <div class="empty-state-description">ミーティングはまだありません</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 進行中のコード生成 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">コード生成状況</h2>
+          <p class="card-subtitle">Cursor Agent実行中のタスク</p>
+        </div>
+        <a href="{{ url_for('code_generation') }}" class="btn btn-ghost btn-sm">詳細を表示</a>
+      </div>
+      <div class="card-body">
+        {% if processing_code_gens %}
+          {% for cg in processing_code_gens %}
+          <div class="list-item" style="margin-bottom: 12px;">
+            <div class="list-item-icon">⚙️</div>
+            <div class="list-item-content">
+              <div class="list-item-title">{{ cg.meeting_name }}</div>
+              <div class="list-item-description">{{ cg.scope|render_scope_badge }}</div>
+            </div>
+            <div class="list-item-meta">
+              <span class="status-badge status-badge-processing">
+                <span class="status-dot status-dot-processing"></span>
+                処理中
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding: 32px;">
+            <div class="empty-state-description">処理中のタスクはありません</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 最近のPR -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">最近のPull Request</h2>
+          <p class="card-subtitle">生成されたコードのPR</p>
+        </div>
+        <a href="{{ url_for('code_generation') }}" class="btn btn-ghost btn-sm">すべて表示</a>
+      </div>
+      <div class="card-body">
+        {% if recent_prs %}
+          {% for pr in recent_prs %}
+          <div class="list-item" style="margin-bottom: 12px;">
+            <div class="list-item-icon">{% if pr.status == 'merged' %}✅{% else %}📝{% endif %}</div>
+            <div class="list-item-content">
+              <div class="list-item-title">#{{ pr.number }} {{ pr.title }}</div>
+              <div class="list-item-description">{{ pr.scope|render_scope_badge }} • +{{ pr.additions }} -{{ pr.deletions }}</div>
+            </div>
+            <div class="list-item-meta">
+              <span class="status-badge status-badge-{{ pr.status }}">
+                {% if pr.status == 'merged' %}マージ済み{% else %}オープン{% endif %}
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding: 32px;">
+            <div class="empty-state-description">PRはまだありません</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- アクティビティタイムライン -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">アクティビティ</h2>
+          <p class="card-subtitle">最近のイベント</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-title">✅ PR #123 マージ</div>
+              <div class="timeline-time">2024-10-27 18:00</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-title">⚙️ コード生成完了: LoginUI</div>
+              <div class="timeline-time">2024-10-27 15:25</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-title">🎥 ミーティング: ProjectAlpha_frontend_LoginUI</div>
+              <div class="timeline-time">2024-10-27 14:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
+

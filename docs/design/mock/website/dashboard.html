@@ -241,3 +241,149 @@
             <h2 class="card-title">最近のPull Request</h2>
             <p class="card-subtitle">生成されたコードのPR</p>
           </div>
+          <a href="code-generation.html" class="btn btn-ghost btn-sm">すべて表示</a>
+        </div>
+        <div class="card-body" id="recent-prs">
+          <!-- JavaScriptで動的に生成 -->
+        </div>
+      </div>
+
+      <!-- アクティビティタイムライン -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">アクティビティ</h2>
+            <p class="card-subtitle">最近のイベント</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="timeline" id="activity-timeline">
+            <!-- JavaScriptで動的に生成 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/mock-data.js"></script>
+  <script src="assets/common.js"></script>
+  <script>
+    // 最近のミーティングを表示
+    function renderRecentMeetings() {
+      const container = document.getElementById('recent-meetings');
+      if (!container) return;
+      
+      const meetings = MockDataHelpers.getRecentMeetings(3);
+      
+      if (meetings.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 32px;"><div class="empty-state-description">ミーティングはまだありません</div></div>';
+        return;
+      }
+      
+      container.innerHTML = meetings.map(meeting => `
+        <div class="list-item" style="margin-bottom: 12px;">
+          <div class="list-item-icon">🎥</div>
+          <div class="list-item-content">
+            <div class="list-item-title">${meeting.title}</div>
+            <div class="list-item-description">${meeting.duration} • ${MockDataHelpers.formatDateTime(meeting.date)}</div>
+          </div>
+          <div class="list-item-meta">
+            <span class="status-badge status-badge-${meeting.status}">
+              <span class="status-dot status-dot-${meeting.status}"></span>
+              ${meeting.status === 'completed' ? '完了' : '処理中'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // コード生成状況を表示
+    function renderCodeGenerationStatus() {
+      const container = document.getElementById('code-generation-status');
+      if (!container) return;
+      
+      const processingCodeGens = mockCodeGeneration.filter(cg => cg.status === 'processing');
+      
+      if (processingCodeGens.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 32px;"><div class="empty-state-description">処理中のタスクはありません</div></div>';
+        return;
+      }
+      
+      container.innerHTML = processingCodeGens.slice(0, 2).map(cg => `
+        <div class="list-item" style="margin-bottom: 12px;">
+          <div class="list-item-icon">⚙️</div>
+          <div class="list-item-content">
+            <div class="list-item-title">${cg.meetingName}</div>
+            <div class="list-item-description">${renderScopeBadge(cg.scope)}</div>
+          </div>
+          <div class="list-item-meta">
+            <span class="status-badge status-badge-processing">
+              <span class="status-dot status-dot-processing"></span>
+              処理中
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // 最近のPRを表示
+    function renderRecentPRs() {
+      const container = document.getElementById('recent-prs');
+      if (!container) return;
+      
+      const prs = mockPullRequests.slice(0, 3);
+      
+      if (prs.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding: 32px;"><div class="empty-state-description">PRはまだありません</div></div>';
+        return;
+      }
+      
+      container.innerHTML = prs.map(pr => `
+        <div class="list-item" style="margin-bottom: 12px;">
+          <div class="list-item-icon">${pr.status === 'merged' ? '✅' : '📝'}</div>
+          <div class="list-item-content">
+            <div class="list-item-title">#${pr.number} ${pr.title}</div>
+            <div class="list-item-description">${renderScopeBadge(pr.scope)} • +${pr.additions} -${pr.deletions}</div>
+          </div>
+          <div class="list-item-meta">
+            <span class="status-badge status-badge-${pr.status}">
+              ${pr.status === 'merged' ? 'マージ済み' : 'オープン'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // アクティビティタイムラインを表示
+    function renderActivityTimeline() {
+      const container = document.getElementById('activity-timeline');
+      if (!container) return;
+      
+      const activities = [
+        { type: 'pr_merged', title: 'PR #123 マージ', time: '2024-10-27T18:00:00Z', icon: '✅' },
+        { type: 'code_gen', title: 'コード生成完了: LoginUI', time: '2024-10-27T15:25:00Z', icon: '⚙️' },
+        { type: 'meeting', title: 'ミーティング: ProjectAlpha_frontend_LoginUI', time: '2024-10-27T14:00:00Z', icon: '🎥' },
+        { type: 'pr_created', title: 'PR #123 作成', time: '2024-10-27T15:30:00Z', icon: '📝' }
+      ];
+      
+      container.innerHTML = activities.map(activity => `
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">${activity.icon} ${activity.title}</div>
+            <div class="timeline-time">${MockDataHelpers.formatRelativeTime(activity.time)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      renderProjectList();
+      renderRecentMeetings();
+      renderCodeGenerationStatus();
+      renderRecentPRs();
+      renderActivityTimeline();
+    });
+  </script>
+</body>
+</html>

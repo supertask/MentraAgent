@@ -1,0 +1,35 @@
+<!-- ハンバーガーメニュー（サイドバー） -->
+<nav class="hamburger-menu" id="hamburgerMenu">
+  <div class="hamburger-menu-section">
+    <h3 class="hamburger-menu-title">ダッシュボード</h3>
+    <a href="{{ url_for('dashboard') }}" class="hamburger-menu-item {% if active_page == 'dashboard' %}active{% endif %}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+      </svg>
+      <span>ホーム</span>
+    </a>
+  </div>
+  <div class="hamburger-menu-divider"></div>
+  <div class="hamburger-menu-section">
+    <h3 class="hamburger-menu-title">ミーティング</h3>
+    <a href="{{ url_for('meetings') }}" class="hamburger-menu-item {% if active_page == 'meetings' %}active{% endif %}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+      </svg>
+      <span>ミーティング一覧</span>
+    </a>
+  </div>
+  <div class="hamburger-menu-divider"></div>
+  <div class="hamburger-menu-section">
+    <h3 class="hamburger-menu-title">コード生成</h3>
+    <a href="{{ url_for('code_generation') }}" class="hamburger-menu-item {% if active_page == 'code_generation' %}active{% endif %}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="16 18 22 12 16 6"></polyline>
+        <polyline points="8 6 2 12 8 18"></polyline>
+      </svg>
+      <span>コード生成状況</span>
+    </a>
+  </div>
+</nav>
+
