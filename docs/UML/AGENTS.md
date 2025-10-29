@@ -111,3 +111,38 @@ flowchart LR
     RA -->|"知識をDBに登録"| DB
     RA -->|"可視化を更新"| DASH
 ```
+
+## コーディングエージェント
+
+```mermaid
+flowchart LR
+    %% --- 入力 ---
+    subgraph Input["入力"]
+        SPEC[📄 仕様書 / 要件定義書<br/>（Notion / Google Drive / GitHub）]
+        ISSUE[🧾 チケット / ToDoリスト<br/>（PMエージェントからの指示）]
+        DOC[📘 ドキュメント / API仕様書]
+    end
+
+    %% --- 中央処理 ---
+    CA[💻 コーディングエージェント<br/>（Cursorによるコード生成・修正・レビュー）]
+
+    %% --- 出力 ---
+    subgraph Output["出力"]
+        CODE[🧠 ソースコード<br/>（GitHubリポジトリ）]
+        PR[🔀 プルリクエスト<br/>（自動レビュー / 修正提案）]
+        TEST[🧪 テスト結果<br/>（CI / Cursor内検証）]
+        DOCS[📄 技術ドキュメント<br/>（README / Wiki / API Docs）]
+        REPORT[📊 進捗レポート<br/>（PMエージェント / Slack通知）]
+    end
+
+    %% --- 矢印（動作） ---
+    SPEC -->|"仕様を読み取り実装計画を生成"| CA
+    ISSUE -->|"タスク内容を解析"| CA
+    DOC -->|"参照ドキュメントを解析"| CA
+
+    CA -->|"コードを自動生成・更新"| CODE
+    CA -->|"PRを作成・レビュー依頼"| PR
+    CA -->|"テストを実行・結果を出力"| TEST
+    CA -->|"技術ドキュメントを生成"| DOCS
+    CA -->|"進捗レポートを通知"| REPORT
+```
